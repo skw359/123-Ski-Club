@@ -22,7 +22,6 @@ const CheckIn = () => {
         initialize();
     }, [token]);
 
-    // Check if user is logged in
     const checkAuth = async () => {
         try {
             const response = await fetch('/api/auth/me', {
@@ -47,7 +46,6 @@ const CheckIn = () => {
         }
     };
 
-    // Check current status
     const checkStatus = async (user) => {
         try {
             const statusResponse = await fetch(`/api/attendance/check-status/${token}`, {
@@ -62,17 +60,14 @@ const CheckIn = () => {
                 }
             }
 
-            // User is logged in but not checked in - auto check them in
             await autoCheckIn(user);
 
         } catch (err) {
             console.error("Status check failed", err);
-            // If status check fails, show auth section as fallback
             setShowAuthSection(true);
         }
     };
 
-    // Automatically check in logged-in user
     const autoCheckIn = async (user) => {
         setIsSubmitting(true);
 
@@ -99,14 +94,12 @@ const CheckIn = () => {
         } catch (error) {
             console.error('Auto check-in error:', error);
             showError(error.message);
-            // Show manual options if auto check-in fails
             setShowAuthSection(true);
             setShowCancelManual(true);
             setIsSubmitting(false);
         }
     };
 
-    // Load session info
     const loadSession = async () => {
         try {
             const response = await fetch(`/api/attendance/session/${token}`);
@@ -121,7 +114,6 @@ const CheckIn = () => {
             const data = await response.json();
             setSessionInfo(data);
 
-            // Calculate check-in window status
             if (data.check_in_window) {
                 const now = new Date();
                 const windowStart = new Date(data.check_in_window.start);
@@ -157,7 +149,6 @@ const CheckIn = () => {
         }
     };
 
-    // Quick check-in for logged-in users
     const handleQuickCheckIn = async () => {
         setIsSubmitting(true);
 
@@ -189,7 +180,6 @@ const CheckIn = () => {
         }
     };
 
-    // Name form submission
     const handleNameFormSubmit = async (e) => {
         e.preventDefault();
 
@@ -227,7 +217,6 @@ const CheckIn = () => {
         }
     };
 
-    // Show success message
     const showSuccess = (message, matched = true) => {
         setStatusMessage({
             type: 'success',
@@ -238,7 +227,6 @@ const CheckIn = () => {
         setShowManualForm(false);
     };
 
-    // Show error message
     const showError = (message) => {
         setStatusMessage({
             type: 'error',
@@ -246,7 +234,6 @@ const CheckIn = () => {
         });
     };
 
-    // Toggle to manual form
     const toggleManualForm = () => {
         setShowAuthSection(false);
         setShowManualForm(true);
@@ -256,7 +243,6 @@ const CheckIn = () => {
         }
     };
 
-    // Cancel manual form
     const cancelManual = () => {
         setShowManualForm(false);
         setShowAuthSection(true);
@@ -632,7 +618,6 @@ const CheckIn = () => {
                         </div>
                     )}
 
-                    {/* Auto Check-in Processing */}
                     {isSubmitting && !statusMessage && !showAuthSection && !showManualForm && (
                         <div className="checkin-auto-processing">
                             <div className="checkin-loading-large"></div>
@@ -641,7 +626,6 @@ const CheckIn = () => {
                         </div>
                     )}
 
-                    {/* Logged In View */}
                     {showAuthSection && currentUser && (
                         <div>
                             <div className="checkin-logged-in-user">
@@ -679,7 +663,6 @@ const CheckIn = () => {
                         </div>
                     )}
 
-                    {/* Manual Entry Form */}
                     {showManualForm && (
                         <form onSubmit={handleNameFormSubmit}>
                             <div className="checkin-form-group">

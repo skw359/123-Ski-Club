@@ -1,8 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// User Registration Routes
-// Waiver upload for user registrations
-// ──────────────────────────────────────────────────────────────────────────────
-
 const express = require('express');
 const router = express.Router();
 
@@ -10,7 +5,6 @@ const { pool } = require('../config');
 const { authRequired } = require('../middleware/auth');
 const { waiverUpload } = require('../middleware/multer');
 
-// Upload Filled Waiver (User endpoint)
 router.post('/:id/waiver', authRequired, waiverUpload.single('waiver'), async (req, res) => {
   try {
     const regId = Number(req.params.id);
@@ -18,7 +12,6 @@ router.post('/:id/waiver', authRequired, waiverUpload.single('waiver'), async (r
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Verify ownership - user can only upload waiver for their own registration
     const { rows: regRows } = await pool.query(
       'SELECT user_id FROM registrations WHERE id = $1',
       [regId]
@@ -46,12 +39,10 @@ router.post('/:id/waiver', authRequired, waiverUpload.single('waiver'), async (r
   }
 });
 
-// Allow user to cancel their own registration
 router.delete('/:id', authRequired, async (req, res) => {
   try {
     const regId = Number(req.params.id);
 
-    // Get trip info before deleting
     const { rows: [reg] } = await pool.query(
       'SELECT r.trip_id, r.moved_to_waitlist, t.name as trip_name FROM registrations r JOIN trips t ON t.id = r.trip_id WHERE r.id = $1 AND r.user_id = $2',
       [regId, req.user.id]
@@ -65,7 +56,6 @@ router.delete('/:id', authRequired, async (req, res) => {
     );
 
     if (rowCount > 0) {
-      // Log the cancellation
       const { logActivity } = require('../utils/logger');
       await logActivity({
         userId: req.user.id,
@@ -75,11 +65,6 @@ router.delete('/:id', authRequired, async (req, res) => {
         metadata: { tripName: reg.trip_name, wasOnWaitlist: reg.moved_to_waitlist }
       });
     }
-
-    // AUTOMATION: Run automation immediately so the next person gets the spot instantly
-    // TEMPORARILY DISABLED - uncomment to re-enable
-    // const { runAutomation } = require('./waitlist');
-    // await runAutomation();
 
     res.json({ success: true });
   } catch (err) {

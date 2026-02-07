@@ -185,7 +185,6 @@ router.post('/resume-session/:id', async (req, res) => {
   }
 });
 
-// Get all attendance sessions
 router.get('/sessions', async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -210,12 +209,10 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
-// Get session details
 router.get('/session/:id', async (req, res) => {
   try {
     const sessionId = parseInt(req.params.id);
 
-    // Get session
     const { rows: [session] } = await pool.query(
       'SELECT * FROM attendance_sessions WHERE id = $1',
       [sessionId]
@@ -225,13 +222,11 @@ router.get('/session/:id', async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Get trip
     const { rows: [trip] } = await pool.query(
       'SELECT * FROM trips WHERE id = $1',
       [session.trip_id]
     );
 
-    // Get expected with physically_present status from registrations
     const { rows: expected } = await pool.query(
       `SELECT ae.*,
               r.id as registration_id,
@@ -244,7 +239,6 @@ router.get('/session/:id', async (req, res) => {
       [sessionId]
     );
 
-    // Get check-ins
     const { rows: checkins } = await pool.query(
       'SELECT * FROM attendance_checkins WHERE session_id = $1 ORDER BY checked_in_at DESC',
       [sessionId]
@@ -263,7 +257,6 @@ router.get('/session/:id', async (req, res) => {
   }
 });
 
-// End attendance session
 router.post('/end-session/:id', async (req, res) => {
   try {
     const sessionId = parseInt(req.params.id);
@@ -288,12 +281,10 @@ router.post('/end-session/:id', async (req, res) => {
   }
 });
 
-// Send attendance emails to all expected passengers
 router.post('/send-emails/:id', async (req, res) => {
   try {
     const sessionId = parseInt(req.params.id);
 
-    // Get session details
     const { rows: [session] } = await pool.query(
       `SELECT s.*, t.name as trip_name, t.trip_date
        FROM attendance_sessions s
@@ -310,7 +301,6 @@ router.post('/send-emails/:id', async (req, res) => {
       return res.status(400).json({ error: 'Session is not active' });
     }
 
-    // Get all expected passengers with their email addresses
     const { rows: expected } = await pool.query(
       `SELECT ae.*, u.email, u.id as user_id
        FROM attendance_expected ae
@@ -334,16 +324,13 @@ router.post('/send-emails/:id', async (req, res) => {
     let emailsSent = 0;
     let emailsFailed = 0;
 
-    // Send email to each person
     for (const person of expected) {
-      // Skip if no email address
       if (!person.email) {
         console.log(`Skipping ${person.first_name} ${person.last_name} - no email address`);
         continue;
       }
 
       try {
-        // Generate unique token for this person
         const attendanceToken = jwt.sign(
           {
             sessionId: session.id,
@@ -416,7 +403,6 @@ router.post('/send-emails/:id', async (req, res) => {
                         </td>
                       </tr>
 
-                      <!-- Footer -->
                       <tr>
                         <td style="background: #2c2c2c; padding: 25px 30px; text-align: center;">
                           <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0; line-height: 1.5;">
@@ -457,7 +443,6 @@ router.post('/send-emails/:id', async (req, res) => {
   }
 });
 
-// Bulk delete attendance sessions
 router.delete('/sessions', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -469,19 +454,16 @@ router.delete('/sessions', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 1. Delete check-ins associated with these sessions
     await client.query(
       'DELETE FROM attendance_checkins WHERE session_id = ANY($1)',
       [ids]
     );
 
-    // 2. Delete expected lists associated with these sessions
     await client.query(
       'DELETE FROM attendance_expected WHERE session_id = ANY($1)',
       [ids]
     );
 
-    // 3. Delete the sessions themselves
     const { rowCount } = await client.query(
       'DELETE FROM attendance_sessions WHERE id = ANY($1)',
       [ids]
@@ -499,10 +481,5 @@ router.delete('/sessions', async (req, res) => {
     client.release();
   }
 });
-
-// Note: The following attendance routes have been moved to match old server paths:
-// - GET /api/admin/trips/:id/attendance → moved to routes/admin/trips.js
-// - PUT /api/admin/registrations/:id/attendance → moved to routes/admin/registrations.js
-// - POST /api/admin/trips/:id/attendance/bulk → moved to routes/admin/trips.js
 
 module.exports = router;

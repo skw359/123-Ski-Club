@@ -42,14 +42,12 @@ const Trip = () => {
     fetchTrip();
     fetchCustomQuestions();
 
-    // Check for check-in token in URL
     const checkinToken = searchParams.get('checkin');
     if (checkinToken) {
       handleCheckInToken(checkinToken);
     }
   }, [id]);
 
-  // Auto-trigger check-in modal if user needs to check in for this trip
   useEffect(() => {
     if (registrationStatus && !authLoading && user) {
       checkAndAutoTriggerCheckIn();
@@ -57,14 +55,6 @@ const Trip = () => {
   }, [registrationStatus, authLoading, user]);
 
   const checkAndAutoTriggerCheckIn = async () => {
-    // Only auto-trigger if:
-    // 1. User is logged in
-    // 2. Has a registration for this trip
-    // 3. Has a check-in token
-    // 4. Not on waitlist
-    // 5. Not already checked in
-    // 6. Not promoted from waitlist
-    // 7. Modal is not already open
     if (!registrationStatus || checkInModal) return;
 
     try {
@@ -77,7 +67,6 @@ const Trip = () => {
         const myReg = regs.find(r => String(r.trip_id) === String(id));
 
         if (myReg && myReg.needs_check_in && myReg.trip_checkin_token && !myReg.promoted_from_waitlist_at) {
-          // Auto-trigger the check-in modal
           await handleCheckInToken(myReg.trip_checkin_token);
         }
       }
@@ -158,12 +147,11 @@ const Trip = () => {
   };
 
   const closeCheckInModal = () => {
-    if (modalClosing) return; // Prevent double-close
+    if (modalClosing) return;
     setModalClosing(true);
     setTimeout(() => {
       setCheckInModal(null);
       setModalClosing(false);
-      // Clear search params after a brief delay to prevent flash
       setTimeout(() => setSearchParams({}), 50);
     }, 200);
   };
@@ -177,14 +165,12 @@ const Trip = () => {
       if (res.ok) {
         const data = await res.json();
 
-        // Check if already checked in
         if (data.checked_in) {
           setMessage({ type: 'success', text: 'You have already checked in for this trip!' });
           setSearchParams({});
           return;
         }
 
-        // Check window status
         if (data.check_in_window.status === 'not_yet_open') {
           const openDate = new Date(data.check_in_window.start).toLocaleDateString('en-US', {
             weekday: 'long',

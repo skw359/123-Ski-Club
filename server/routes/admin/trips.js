@@ -1,8 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// Admin Trip Management Routes
-// Create, update, delete trips
-// ──────────────────────────────────────────────────────────────────────────────
-
 const express = require('express');
 const router = express.Router();
 
@@ -13,10 +8,8 @@ const { waiverUpload } = require('../../middleware/multer');
 const fs = require('fs');
 const path = require('path');
 
-// All routes in this file require admin auth
 router.use(adminRequired);
 
-// Get all trips for admin dropdowns
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -30,7 +23,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create new trip
 router.post('/', async (req, res) => {
   try {
     const { name, destination, description, trip_date, capacity, image_url, departure_info, return_info, ask_default_questions, registration_opens_at, departure_time, requires_checkin } = req.body;
@@ -56,7 +48,6 @@ router.post('/', async (req, res) => {
 
     const newTrip = rows[0];
 
-    // Log trip creation
     await logActivity({
       tripId: newTrip.id,
       actionType: 'TRIP_CREATED',
@@ -72,12 +63,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update trip
 router.put('/:id', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
 
-    // Get old trip data first for comparison
     const { rows: oldRows } = await pool.query('SELECT * FROM trips WHERE id = $1', [tripId]);
     if (oldRows.length === 0) {
       return res.status(404).json({ error: 'Trip not found' });
@@ -110,7 +99,6 @@ router.put('/:id', async (req, res) => {
 
     const updatedTrip = rows[0];
 
-    // Build detailed change description
     const changes = [];
     if (oldTrip.name !== name) changes.push(`name from "${oldTrip.name}" to "${name}"`);
     if (oldTrip.destination !== destination) changes.push(`destination from "${oldTrip.destination}" to "${destination}"`);
@@ -125,7 +113,6 @@ router.put('/:id', async (req, res) => {
     if (oldTrip.departure_info !== departure_info) changes.push(`departure info`);
     if (oldTrip.return_info !== return_info) changes.push(`return info`);
 
-    // Compare departure times properly
     const oldTimeStr = oldTrip.departure_time ? new Date(oldTrip.departure_time).toISOString() : null;
     const newTimeStr = departure_time ? new Date(departure_time).toISOString() : null;
     if (oldTimeStr !== newTimeStr) {
@@ -138,7 +125,6 @@ router.put('/:id', async (req, res) => {
       ? `Updated trip "${name}" - Changed ${changes.join(', ')}`
       : `Updated trip "${name}" - No significant changes detected`;
 
-    // Log trip update with detailed changes
     await logActivity({
       tripId: tripId,
       actionType: 'TRIP_UPDATED',
@@ -160,19 +146,16 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete trip
 router.delete('/:id', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
-    const { force } = req.query; // Allow force deletion when trip safety is off
+    const { force } = req.query;
 
-    // Check trip safety setting
     const { rows: settingsRows } = await pool.query(
       "SELECT setting_value FROM admin_settings WHERE setting_key = 'trip_safety_enabled'"
     );
     const tripSafetyEnabled = settingsRows.length > 0 ? settingsRows[0].setting_value : true;
 
-    // Check if trip has registrations
     const { rows: registrations } = await pool.query(
       'SELECT COUNT(*) as count FROM registrations WHERE trip_id = $1',
       [tripId]
@@ -180,7 +163,6 @@ router.delete('/:id', async (req, res) => {
 
     const registrationCount = parseInt(registrations[0].count);
 
-    // If trip safety is enabled and there are registrations, block deletion
     if (tripSafetyEnabled && registrationCount > 0) {
       return res.status(409).json({
         error: 'Cannot delete trip with existing registrations',
@@ -189,7 +171,6 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // If there are registrations and force is not true, require confirmation
     if (registrationCount > 0 && force !== 'true') {
       return res.status(409).json({
         error: 'Trip has registrations',
@@ -199,7 +180,6 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Get trip info before deleting for the log
     const { rows: [tripToDelete] } = await pool.query(
       'SELECT * FROM trips WHERE id = $1',
       [tripId]
@@ -209,7 +189,6 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    // Log trip deletion BEFORE deleting (so foreign key constraint doesn't fail)
     await logActivity({
       tripId: tripId,
       actionType: 'TRIP_DELETED',
@@ -222,12 +201,10 @@ router.delete('/:id', async (req, res) => {
       }
     });
 
-    // Delete registrations first (cascade delete)
     if (registrationCount > 0) {
       await pool.query('DELETE FROM registrations WHERE trip_id = $1', [tripId]);
     }
 
-    // Delete the trip
     await pool.query('DELETE FROM trips WHERE id = $1', [tripId]);
 
     res.json({
@@ -241,7 +218,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Get trip registrations
 router.get('/:id/registrations', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
@@ -270,7 +246,6 @@ router.get('/:id/registrations', async (req, res) => {
   }
 });
 
-// Export registrations as CSV
 router.get('/:id/registrations/export', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
@@ -294,11 +269,9 @@ router.get('/:id/registrations/export', async (req, res) => {
       return res.status(404).json({ error: 'No registrations found' });
     }
 
-    // Set CSV headers
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${registrations[0].trip_name}_registrations.csv"`);
 
-    // Create CSV content
     const headers = [
       'Name', 'Email', 'Skill Level', 'Equipment Rental', 'Helmet Rental',
       'Emergency Contact Name', 'Emergency Contact Phone', 'Special Requests', 'Registered At'
@@ -329,12 +302,10 @@ router.get('/:id/registrations/export', async (req, res) => {
   }
 });
 
-// Export registrations with custom answers to CSV
 router.get('/:id/registrations/export-full', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
 
-    // Get trip info
     const { rows: [trip] } = await pool.query(
       'SELECT name FROM trips WHERE id = $1',
       [tripId]
@@ -344,7 +315,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    // Get all custom questions for this trip
     const { rows: customQuestions } = await pool.query(
       `SELECT id, question_text
        FROM trip_custom_questions
@@ -353,7 +323,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       [tripId]
     );
 
-    // Get registrations with custom answers
     const { rows: registrations } = await pool.query(
       `SELECT r.id, r.registered_at,
               r.equipment_rental, r.helmet_rental, r.skill_level,
@@ -367,7 +336,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       [tripId]
     );
 
-    // Get all custom answers
     const { rows: allAnswers } = await pool.query(
       `SELECT a.registration_id, a.question_id, a.answer_text
        FROM registration_custom_answers a
@@ -376,7 +344,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       [tripId]
     );
 
-    // Create answer lookup map
     const answerMap = {};
     allAnswers.forEach(ans => {
       if (!answerMap[ans.registration_id]) {
@@ -385,7 +352,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       answerMap[ans.registration_id][ans.question_id] = ans.answer_text;
     });
 
-    // Build CSV headers
     const baseHeaders = [
       'Name', 'Email', 'Skill Level', 'Equipment Rental', 'Helmet Rental',
       'Emergency Contact Name', 'Emergency Contact Phone', 'Special Requests', 'Registered At'
@@ -394,7 +360,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
     const customHeaders = customQuestions.map(q => q.question_text);
     const headers = [...baseHeaders, ...customHeaders];
 
-    // Build CSV content
     let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
 
     registrations.forEach(reg => {
@@ -410,7 +375,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
         `"${new Date(reg.registered_at).toLocaleString('en-US', { timeZone: 'America/New_York' })}"`
       ];
 
-      // Add custom answers
       const customAnswers = customQuestions.map(q => {
         const answer = answerMap[reg.id]?.[q.id] || '';
         return `"${answer.replace(/"/g, '""')}"`;
@@ -419,7 +383,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
       csvContent += [...baseRow, ...customAnswers].join(',') + '\n';
     });
 
-    // Send CSV
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${trip.name.replace(/[^a-z0-9]/gi, '_')}_full_registrations.csv"`);
     res.send(csvContent);
@@ -430,7 +393,6 @@ router.get('/:id/registrations/export-full', async (req, res) => {
   }
 });
 
-// Upload Trip Waiver (Admin)
 router.post('/:id/waiver', waiverUpload.single('waiver'), async (req, res) => {
   try {
     const tripId = Number(req.params.id);
@@ -452,12 +414,10 @@ router.post('/:id/waiver', waiverUpload.single('waiver'), async (req, res) => {
   }
 });
 
-// Delete Trip Waiver (Admin)
 router.delete('/:id/waiver', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
 
-    // Get current path
     const { rows } = await pool.query('SELECT waiver_pdf_path FROM trips WHERE id = $1', [tripId]);
     if (rows.length > 0 && rows[0].waiver_pdf_path) {
       const fullPath = path.join(__dirname, '..', '..', '..', 'public_uploads', rows[0].waiver_pdf_path);
@@ -474,13 +434,11 @@ router.delete('/:id/waiver', async (req, res) => {
   }
 });
 
-// Giveaway endpoint - randomly assign rental and lift ticket prizes
 router.post('/:id/giveaway', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
     const { rental_count, ticket_count } = req.body;
 
-    // Validate inputs
     if (rental_count < 0 || ticket_count < 0) {
       return res.status(400).json({ error: 'Prize counts must be non-negative' });
     }
@@ -489,7 +447,6 @@ router.post('/:id/giveaway', async (req, res) => {
       return res.status(400).json({ error: 'At least one prize type must be specified' });
     }
 
-    // Get all active registrations (not on waitlist)
     const { rows: registrations } = await pool.query(
       `SELECT id FROM registrations
        WHERE trip_id = $1 AND moved_to_waitlist = FALSE
@@ -501,7 +458,6 @@ router.post('/:id/giveaway', async (req, res) => {
       return res.status(400).json({ error: 'No active registrations found for this trip' });
     }
 
-    // Check if we have enough people
     const totalPrizes = rental_count + ticket_count;
     if (totalPrizes > registrations.length) {
       return res.status(400).json({
@@ -509,7 +465,6 @@ router.post('/:id/giveaway', async (req, res) => {
       });
     }
 
-    // Reset all prizes for this trip first
     await pool.query(
       'UPDATE registrations SET won_rental = FALSE, won_ticket = FALSE WHERE trip_id = $1',
       [tripId]
@@ -517,7 +472,6 @@ router.post('/:id/giveaway', async (req, res) => {
 
     let winners = [];
 
-    // Award rental prizes
     if (rental_count > 0) {
       const rentalWinners = registrations.slice(0, rental_count);
       for (const winner of rentalWinners) {
@@ -529,7 +483,6 @@ router.post('/:id/giveaway', async (req, res) => {
       winners = [...rentalWinners];
     }
 
-    // Award ticket prizes (from remaining people)
     if (ticket_count > 0) {
       const remainingRegistrations = registrations.slice(rental_count);
       const ticketWinners = remainingRegistrations.slice(0, ticket_count);
@@ -541,7 +494,6 @@ router.post('/:id/giveaway', async (req, res) => {
       }
     }
 
-    // Get winner details for response
     const { rows: winnerDetails } = await pool.query(
       `SELECT r.id, r.won_rental, r.won_ticket, u.first_name, u.last_name, u.email
        FROM registrations r
@@ -563,7 +515,6 @@ router.post('/:id/giveaway', async (req, res) => {
   }
 });
 
-// Manually add a person to a trip
 router.post('/:id/manual-register', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -574,15 +525,12 @@ router.post('/:id/manual-register', async (req, res) => {
       return res.status(400).json({ error: 'user_id is required' });
     }
 
-    // 1. Get Trip Data
     const { rows: [trip] } = await pool.query('SELECT * FROM trips WHERE id = $1', [tripId]);
     if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-    // 2. Check if user exists
     const { rows: [user] } = await pool.query('SELECT id, first_name, last_name FROM users WHERE id = $1', [user_id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // 3. Check if already registered
     const { rows: existing } = await pool.query(
       'SELECT id FROM registrations WHERE trip_id = $1 AND user_id = $2',
       [tripId, user_id]
@@ -591,7 +539,6 @@ router.post('/:id/manual-register', async (req, res) => {
       return res.status(409).json({ error: 'User is already registered for this trip' });
     }
 
-    // 4. CAPACITY CHECK
     await client.query('BEGIN');
 
     const { rows: [c] } = await client.query(
@@ -605,7 +552,6 @@ router.post('/:id/manual-register', async (req, res) => {
 
     if (currentCount >= trip.capacity) {
       addToWaitlist = true;
-      // Get the next waitlist position
       const { rows: [maxPos] } = await client.query(
         'SELECT MAX(waitlist_position) as max_pos FROM registrations WHERE trip_id = $1 AND moved_to_waitlist = TRUE',
         [tripId]
@@ -613,7 +559,6 @@ router.post('/:id/manual-register', async (req, res) => {
       waitlistPosition = (maxPos.max_pos || 0) + 1;
     }
 
-    // 5. INSERT REGISTRATION (with default/minimal data)
     await client.query(
       `INSERT INTO registrations (
         trip_id, user_id, equipment_rental, helmet_rental,
@@ -622,21 +567,20 @@ router.post('/:id/manual-register', async (req, res) => {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         tripId, user_id,
-        'none',           // equipment_rental
-        false,            // helmet_rental
-        'intermediate',   // skill_level (default)
-        'N/A',           // emergency_contact_name
-        'N/A',           // emergency_contact_phone
-        'Manually added by admin', // special_requests
-        true,            // terms_agreed
-        addToWaitlist,   // moved_to_waitlist
-        waitlistPosition // waitlist_position
+        'none',
+        false,
+        'intermediate',
+        'N/A',
+        'N/A',
+        'Manually added by admin',
+        true,
+        addToWaitlist,
+        waitlistPosition
       ]
     );
 
     await client.query('COMMIT');
 
-    // 6. RESPOND
     if (addToWaitlist) {
       res.json({
         success: true,
@@ -660,12 +604,10 @@ router.post('/:id/manual-register', async (req, res) => {
   }
 });
 
-// Get attendance list for a trip
 router.get('/:id/attendance', async (req, res) => {
   try {
     const tripId = Number(req.params.id);
 
-    // Get trip info
     const { rows: [trip] } = await pool.query(
       'SELECT id, name, destination, trip_date, departure_time FROM trips WHERE id = $1',
       [tripId]
@@ -675,7 +617,6 @@ router.get('/:id/attendance', async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    // Get all registrations with attendance info
     const { rows: registrations } = await pool.query(
       `SELECT r.id as registration_id,
               r.moved_to_waitlist,
@@ -692,7 +633,6 @@ router.get('/:id/attendance', async (req, res) => {
       [tripId]
     );
 
-    // Categorize registrations
     const activeRegistrations = registrations.filter(r => !r.moved_to_waitlist);
     const waitlisted = registrations.filter(r => r.moved_to_waitlist);
 
@@ -716,13 +656,12 @@ router.get('/:id/attendance', async (req, res) => {
   }
 });
 
-// Bulk update attendance
 router.post('/:id/attendance/bulk', async (req, res) => {
   const client = await pool.connect();
 
   try {
     const tripId = Number(req.params.id);
-    const { attendance_updates } = req.body; // Array of { registration_id, physically_present }
+    const { attendance_updates } = req.body;
 
     if (!Array.isArray(attendance_updates)) {
       return res.status(400).json({ error: 'attendance_updates must be an array' });
@@ -730,7 +669,6 @@ router.post('/:id/attendance/bulk', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Update each registration's attendance
     for (const update of attendance_updates) {
       const { registration_id, physically_present } = update;
 

@@ -1,8 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// Admin Registration Management Routes
-// Individual registration details, removal, prize management
-// ──────────────────────────────────────────────────────────────────────────────
-
 const express = require('express');
 const router = express.Router();
 
@@ -10,10 +5,8 @@ const { pool } = require('../../config');
 const { logActivity } = require('../../utils/logger');
 const { adminRequired } = require('../../middleware/auth');
 
-// All routes in this file require admin auth
 router.use(adminRequired);
 
-// Get individual registration details
 router.get('/:id', async (req, res) => {
   try {
     const registrationId = Number(req.params.id);
@@ -43,12 +36,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get registration with custom answers (for admin viewing)
 router.get('/:id/details', async (req, res) => {
   try {
     const registrationId = Number(req.params.id);
 
-    // Get basic registration info
     const { rows: [registration] } = await pool.query(
       `SELECT r.id as registration_id, r.registered_at,
               r.equipment_rental, r.helmet_rental, r.skill_level,
@@ -67,7 +58,6 @@ router.get('/:id/details', async (req, res) => {
       return res.status(404).json({ error: 'Registration not found' });
     }
 
-    // Get custom answers
     const { rows: customAnswers } = await pool.query(
       `SELECT q.question_text, q.question_type, COALESCE(a.answer_text, '') as answer_text
        FROM trip_custom_questions q
@@ -88,12 +78,10 @@ router.get('/:id/details', async (req, res) => {
   }
 });
 
-// Remove a specific registration (Kick user)
 router.delete('/:id', async (req, res) => {
   try {
     const regId = Number(req.params.id);
 
-    // Get user and trip info before deleting
     const { rows: [reg] } = await pool.query(
       'SELECT r.user_id, r.trip_id, r.moved_to_waitlist, t.name as trip_name FROM registrations r JOIN trips t ON t.id = r.trip_id WHERE r.id = $1',
       [regId]

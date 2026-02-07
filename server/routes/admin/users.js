@@ -1,8 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// Admin User Management Routes
-// User listing, strikes, registration management
-// ──────────────────────────────────────────────────────────────────────────────
-
 const express = require('express');
 const router = express.Router();
 
@@ -10,10 +5,8 @@ const { pool } = require('../../config');
 const { logActivity } = require('../../utils/logger');
 const { adminRequired } = require('../../middleware/auth');
 
-// All routes in this file require admin auth
 router.use(adminRequired);
 
-// Get all users with registration stats
 router.get('/', async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '' } = req.query;
@@ -50,7 +43,6 @@ router.get('/', async (req, res) => {
       queryParams
     );
 
-    // Get total count for pagination
     const { rows: [{ total }] } = await pool.query(
       `SELECT COUNT(DISTINCT u.id) as total FROM users u ${whereClause}`,
       search ? [`%${search}%`] : []
@@ -71,7 +63,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Admin adds a strike to a user
 router.post('/:id/strike', async (req, res) => {
   try {
     const userId = Number(req.params.id);
@@ -102,7 +93,6 @@ router.post('/:id/strike', async (req, res) => {
   }
 });
 
-// Admin removes a strike from a user
 router.delete('/:id/strike', async (req, res) => {
   try {
     const userId = Number(req.params.id);
@@ -134,7 +124,6 @@ router.delete('/:id/strike', async (req, res) => {
   }
 });
 
-// Admin clears all strikes from a user
 router.post('/:id/strikes/clear', async (req, res) => {
   try {
     const userId = Number(req.params.id);
