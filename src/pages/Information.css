@@ -1,0 +1,162 @@
+/* ===== PDF viewer styles ===== */
+.information-page-container {
+    padding: 20px 0 60px;
+    min-height: 80vh;
+}
+
+#pdfRoot { 
+    max-width: 1000px; 
+    margin: 0 auto; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.pdf-page-container {
+    position: relative; 
+    display: block; 
+    width: 100%; 
+    margin: 0; 
+    background: #fff;
+    border-bottom: 1px solid #eee;
+}
+
+.pdf-page { 
+    display: block; 
+    width: 100%; 
+    margin: 0; 
+    background: #fff; 
+}
+
+/* Annotations */
+.annotationLayer {
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    pointer-events: none; 
+    z-index: 2;
+}
+
+.annotationLayer section { 
+    position: absolute; 
+    pointer-events: auto; 
+}
+
+.annotationLayer .linkAnnotation,
+.annotationLayer .buttonWidgetAnnotation {
+    cursor: pointer; 
+    border-radius: 2px; 
+    transition: all 0.2s ease;
+}
+
+.annotationLayer .linkAnnotation > a,
+.annotationLayer .buttonWidgetAnnotation > a,
+.annotationLayer .buttonWidgetAnnotation.pushButton > a {
+    position: absolute; 
+    font-size: 1em; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    border: none; 
+    background: transparent; 
+    cursor: pointer; 
+    box-sizing: border-box;
+    text-decoration: none; 
+    color: transparent; 
+    z-index: 1;
+}
+
+.annotationLayer .linkAnnotation:hover,
+.annotationLayer .buttonWidgetAnnotation:hover {
+    background: rgba(33,150,243,0.1);
+    box-shadow: 0 0 5px rgba(33,150,243,0.3);
+    border: 1px solid rgba(33,150,243,0.5);
+}
+
+.annotationLayer .buttonWidgetAnnotation.pushButton:hover {
+    background: rgba(76,175,80,0.1);
+    box-shadow: 0 0 5px rgba(76,175,80,0.3);
+    border: 1px solid rgba(76,175,80,0.5);
+}
+
+/* Text Layer */
+.textLayer {
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    overflow: hidden; 
+    opacity: 0.25; 
+    line-height: 1; 
+    pointer-events: auto; 
+    z-index: 1;
+}
+
+.textLayer span {
+    color: transparent; 
+    position: absolute; 
+    white-space: pre; 
+    cursor: text; 
+    transform-origin: 0% 0%;
+}
+
+.textLayer ::selection { 
+    background: rgba(0,0,255,0.3); 
+}
+
+.loading { 
+    text-align: center; 
+    padding: 40px; 
+    font-size: 18px; 
+    color: #6c757d; 
+}
+
+.error {
+    text-align: center; 
+    padding: 40px; 
+    font-size: 18px; 
+    color: #e21833;
+    background: #ffe6e6; 
+    border-radius: 8px; 
+    margin: 20px;
+}
+
+/* Link tooltip for PDF links */
+.link-tooltip {
+    position: absolute; 
+    background: rgba(0,0,0,0.8); 
+    color: #fff;
+    padding: 4px 8px; 
+    border-radius: 4px; 
+    font-size: 12px; 
+    white-space: nowrap;
+    z-index: 1000; 
+    pointer-events: none; 
+    opacity: 0; 
+    transition: opacity 0.2s;
+    bottom: 100%; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    margin-bottom: 5px;
+}
+
+.link-tooltip::after {
+    content: ''; 
+    position: absolute; 
+    top: 100%; 
+    left: 50%; 
+    transform: translateX(-50%);
+    border: 5px solid transparent; 
+    border-top-color: rgba(0,0,0,0.8);
+}
+
+.annotationLayer .linkAnnotation:hover .link-tooltip,
+.annotationLayer .buttonWidgetAnnotation:hover .link-tooltip { 
+    opacity: 1; 
+}
+
+@media (max-width: 768px) {
+    #pdfRoot { max-width: 100vw; }
+}
