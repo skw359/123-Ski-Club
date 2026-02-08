@@ -1413,16 +1413,19 @@ export default function Admin() {
                             </div>
                             <div style={{overflowX: 'auto'}}>
                                 {(() => {
-                                    const now = new Date();
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
                                     const currentTrips = trips.filter(t => {
                                         if (!t.trip_date) return true;
                                         const tripDate = new Date(t.trip_date);
-                                        return tripDate >= now;
+                                        tripDate.setHours(0, 0, 0, 0);
+                                        return tripDate >= today;
                                     });
                                     const pastTrips = trips.filter(t => {
                                         if (!t.trip_date) return false;
                                         const tripDate = new Date(t.trip_date);
-                                        return tripDate < now;
+                                        tripDate.setHours(0, 0, 0, 0);
+                                        return tripDate < today;
                                     });
 
                                     return (
