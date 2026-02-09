@@ -57,6 +57,7 @@ async function runAutomation() {
             UPDATE registrations
             SET moved_to_waitlist = FALSE,
                 promotion_expires_at = $1,
+                promoted_from_waitlist_at = NOW(),
                 waitlist_position = NULL
             WHERE id = $2
           `, [deadline, person.id]);

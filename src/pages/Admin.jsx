@@ -2230,7 +2230,7 @@ export default function Admin() {
                         <div className="roster-section" style={{marginBottom:'24px'}}>
                             <h4 style={{fontSize:'14px', fontWeight:'700', marginBottom:'12px', paddingBottom:'8px', borderBottom:'2px solid var(--success-green)', color:'var(--text-primary)'}}>Active Roster</h4>
                             <table className="data-table">
-                            <thead><tr><th style={{width:'30px'}}></th><th>Name</th><th>Email</th><th>Status</th><th>Rental</th><th>Prizes</th><th>Waiver</th><th>Actions</th></tr></thead>
+                            <thead><tr><th style={{width:'30px'}}></th><th>Name</th><th>Email</th><th>Spot Secured</th><th>Status</th><th>Rental</th><th>Prizes</th><th>Waiver</th><th>Actions</th></tr></thead>
                             <tbody>
                                 {registrationData.active.map(r => (
                                     <React.Fragment key={r.registration_id}>
@@ -2238,6 +2238,7 @@ export default function Admin() {
                                             <td style={{textAlign:'center'}}><i className="fas fa-chevron-down row-toggle-icon"></i></td>
                                             <td><strong>{r.first_name} {r.last_name}</strong></td>
                                             <td>{r.email}</td>
+                                            <td style={{fontSize:'12px'}}>{formatDateTime(r.promoted_from_waitlist_at || r.registered_at)}</td>
                                             <td>
                                                 {r.promotion_expires_at ? (() => {
                                                     // PRIORITY 1: Waitlist promotion deadline (20-hour window)

@@ -230,7 +230,7 @@ router.get('/:id/registrations', async (req, res) => {
               r.checked_in, r.check_in_response_at, r.moved_to_waitlist,
               r.filled_waiver_pdf_path,
               r.won_rental, r.won_ticket, r.waitlist_position,
-              r.promotion_expires_at,
+              r.promotion_expires_at, r.promoted_from_waitlist_at,
               u.id as user_id, u.email, u.first_name, u.last_name
        FROM registrations r
        JOIN users u ON u.id = r.user_id
@@ -447,21 +447,64 @@ router.post('/:id/giveaway', async (req, res) => {
       return res.status(400).json({ error: 'At least one prize type must be specified' });
     }
 
-    const { rows: registrations } = await pool.query(
-      `SELECT id FROM registrations
-       WHERE trip_id = $1 AND moved_to_waitlist = FALSE
-       ORDER BY RANDOM()`,
-      [tripId]
+    // Find custom questions for rental and lift ticket raffles
+    const { rows: raffleQuestions } = await pool.query(
+      `SELECT id, question_text FROM trip_custom_questions
+       WHERE trip_id = $1 AND (
+         LOWER(TRIM(REPLACE(question_text, '*', ''))) = LOWER($2) OR
+         LOWER(TRIM(REPLACE(question_text, '*', ''))) = LOWER($3)
+       )`,
+      [tripId, 'Would you like to be entered into the raffle for a free rental?', 'Would you like to be entered into the raffle for a free lift ticket?']
     );
 
-    if (registrations.length === 0) {
-      return res.status(400).json({ error: 'No active registrations found for this trip' });
+    let rentalQuestionId = null;
+    let ticketQuestionId = null;
+    for (const q of raffleQuestions) {
+      const cleaned = q.question_text.replace(/\*/g, '').trim().toLowerCase();
+      if (cleaned === 'would you like to be entered into the raffle for a free rental?') rentalQuestionId = q.id;
+      if (cleaned === 'would you like to be entered into the raffle for a free lift ticket?') ticketQuestionId = q.id;
     }
 
-    const totalPrizes = rental_count + ticket_count;
-    if (totalPrizes > registrations.length) {
+    // Get eligible registrations for rental raffle (only those who answered "Yes")
+    const { rows: rentalEligible } = await pool.query(
+      rentalQuestionId
+        ? `SELECT r.id FROM registrations r
+           JOIN registration_custom_answers a ON a.registration_id = r.id AND a.question_id = $2
+           WHERE r.trip_id = $1 AND r.moved_to_waitlist = FALSE AND LOWER(TRIM(a.answer_text)) = 'yes'
+           ORDER BY RANDOM()`
+        : `SELECT r.id FROM registrations r
+           WHERE r.trip_id = $1 AND r.moved_to_waitlist = FALSE
+           ORDER BY RANDOM()`,
+      rentalQuestionId ? [tripId, rentalQuestionId] : [tripId]
+    );
+
+    // Get eligible registrations for lift ticket raffle (only those who answered "Yes")
+    const { rows: ticketEligible } = await pool.query(
+      ticketQuestionId
+        ? `SELECT r.id FROM registrations r
+           JOIN registration_custom_answers a ON a.registration_id = r.id AND a.question_id = $2
+           WHERE r.trip_id = $1 AND r.moved_to_waitlist = FALSE AND LOWER(TRIM(a.answer_text)) = 'yes'
+           ORDER BY RANDOM()`
+        : `SELECT r.id FROM registrations r
+           WHERE r.trip_id = $1 AND r.moved_to_waitlist = FALSE
+           ORDER BY RANDOM()`,
+      ticketQuestionId ? [tripId, ticketQuestionId] : [tripId]
+    );
+
+    if (rental_count > 0 && rentalEligible.length === 0) {
+      return res.status(400).json({ error: 'No eligible participants for the rental raffle. Make sure registrants answered "Yes" to the rental raffle question.' });
+    }
+    if (ticket_count > 0 && ticketEligible.length === 0) {
+      return res.status(400).json({ error: 'No eligible participants for the lift ticket raffle. Make sure registrants answered "Yes" to the lift ticket raffle question.' });
+    }
+    if (rental_count > rentalEligible.length) {
       return res.status(400).json({
-        error: `Not enough participants. Trip has ${registrations.length} active registrations but ${totalPrizes} prizes requested.`
+        error: `Not enough participants for rental raffle. ${rentalEligible.length} eligible but ${rental_count} prizes requested.`
+      });
+    }
+    if (ticket_count > ticketEligible.length) {
+      return res.status(400).json({
+        error: `Not enough participants for lift ticket raffle. ${ticketEligible.length} eligible but ${ticket_count} prizes requested.`
       });
     }
 
@@ -473,7 +516,7 @@ router.post('/:id/giveaway', async (req, res) => {
     let winners = [];
 
     if (rental_count > 0) {
-      const rentalWinners = registrations.slice(0, rental_count);
+      const rentalWinners = rentalEligible.slice(0, rental_count);
       for (const winner of rentalWinners) {
         await pool.query(
           'UPDATE registrations SET won_rental = TRUE WHERE id = $1',
@@ -484,8 +527,7 @@ router.post('/:id/giveaway', async (req, res) => {
     }
 
     if (ticket_count > 0) {
-      const remainingRegistrations = registrations.slice(rental_count);
-      const ticketWinners = remainingRegistrations.slice(0, ticket_count);
+      const ticketWinners = ticketEligible.slice(0, ticket_count);
       for (const winner of ticketWinners) {
         await pool.query(
           'UPDATE registrations SET won_ticket = TRUE WHERE id = $1',
