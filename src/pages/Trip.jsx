@@ -71,7 +71,7 @@ const Trip = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking for auto check-in:', error);
+      // silently fail — auto check-in is best-effort
     }
   };
 
@@ -88,7 +88,7 @@ const Trip = () => {
         credentials: 'include'
       });
       if (res.ok) setTrip(await res.json());
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) { /* fetch failed */ } finally { setLoading(false); }
   };
 
   const checkUserStrikes = async () => {
@@ -100,7 +100,7 @@ const Trip = () => {
                   setStrikeCount(regs[0].strike_count || 0);
               }
           }
-      } catch (e) { console.error(e); }
+      } catch (e) { /* fetch failed */ }
   };
 
   const checkRegistration = async () => {
@@ -124,7 +124,7 @@ const Trip = () => {
             }
         }
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { /* fetch failed */ }
   };
 
   const fetchCustomQuestions = async () => {
@@ -203,7 +203,6 @@ const Trip = () => {
         setSearchParams({});
       }
     } catch (error) {
-      console.error('Error loading check-in:', error);
       setMessage({ type: 'error', text: 'Failed to load check-in information' });
       setSearchParams({});
     }
@@ -231,7 +230,6 @@ const Trip = () => {
         setMessage({ type: 'error', text: result.error || 'Failed to confirm check-in' });
       }
     } catch (error) {
-      console.error('Error confirming check-in:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setProcessingCheckIn(false);
@@ -264,7 +262,6 @@ const Trip = () => {
         setMessage({ type: 'error', text: result.error || 'Failed to decline check-in' });
       }
     } catch (error) {
-      console.error('Error declining check-in:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setProcessingCheckIn(false);

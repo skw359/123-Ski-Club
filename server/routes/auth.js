@@ -215,7 +215,7 @@ router.get('/consume', async (req, res) => {
 
     if (!allowExternal && !isUmdEmail(row.email)) {
       console.log('Not UMD email and external not allowed');
-      return res.status(400).send('Email must end with @terpmail.umd.edu or @umd.edu');
+      return res.status(400).send('Email must end with @terpmail.umd.edu');
     }
 
     await pool.query('UPDATE magic_link_tokens SET used_at = NOW() WHERE token = $1', [token]);

@@ -42,8 +42,8 @@ The 123 I Like To Ski Club Management System is a full-stack web application tha
 #### Magic Link Authentication
 - Passwordless login via email
 - Secure JWT-based session management
-- UMD email validation (@terpmail.umd.edu only)
-- Optional external email support (configurable by admins, toggled on/off)
+- UMD email validation (@umd.edu, @terpmail.umd.edu)
+- Optional external email support (configurable by admins)
 
 #### Trip Check-ins
 - **2-Day Trip Check-ins**: Confirm attendance 24 hours before multi-day trips

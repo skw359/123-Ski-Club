@@ -11,12 +11,6 @@ export const NotificationProvider = ({ children }) => {
 
     setNotifications((prev) => [notification, ...prev]);
 
-    if (duration > 0) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, duration);
-    }
-
     return id;
   }, []);
 

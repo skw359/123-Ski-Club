@@ -237,7 +237,6 @@ export default function Admin() {
             }
             return res;
         } catch (err) {
-            console.error(err);
             return null;
         }
     }, []);
@@ -1693,7 +1692,7 @@ export default function Admin() {
                                 <label className="toggle-switch"><input type="checkbox" checked={settings.tripSafety} onChange={() => toggleSetting('tripSafety')} /><span className="toggle-slider"></span></label>
                             </div>
                             <div className="toggle-wrapper">
-                                <div><div className="toggle-label">External Emails</div><span className="toggle-desc">Allow non-edu emails to register</span></div>
+                                <div><div className="toggle-label">External Emails</div><span className="toggle-desc">Allow non-@terpmail emails to register</span></div>
                                 <label className="toggle-switch"><input type="checkbox" checked={settings.externalEmails} onChange={() => toggleSetting('externalEmails')} /><span className="toggle-slider"></span></label>
                             </div>
                          </div>
@@ -1907,7 +1906,6 @@ export default function Admin() {
                             </div>
                             <div style={{padding: '15px', background: 'var(--subtle-bg)', borderRadius: '8px', border: '1px solid var(--medium-gray)'}}>
                                 {editingTrip ? (
-                                    // EXISTING TRIP LOGIC
                                     editingTrip.waiver_pdf_path ? (
                                         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                                             <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
@@ -2067,20 +2065,20 @@ export default function Admin() {
 
                     {/* Compact Stats Row */}
                     <div className="stats-container" style={{display:'grid', gridTemplateColumns: registrationData.trip.requires_checkin ? '1fr 1fr 1fr' : '1fr 1fr', gap:'16px', padding:'12px 24px', background:'var(--subtle-bg)', borderBottom:'1px solid var(--medium-gray)', flexShrink:0}}>
-                        <div className="stat-card" style={{padding:'12px 16px', background:'white', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
+                        <div className="stat-card" style={{padding:'12px 16px', background:'var(--umd-white)', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
                             <div className="stat-label" style={{fontSize:'11px', fontWeight:'600', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'4px'}}>Capacity</div>
                             <div className="stat-value" style={{fontSize:'24px', fontWeight:'700', color:'var(--text-primary)'}}>
                                 {registrationData.active.length} / {registrationData.trip.capacity}
                             </div>
                         </div>
-                        <div className="stat-card" style={{padding:'12px 16px', background:'white', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
+                        <div className="stat-card" style={{padding:'12px 16px', background:'var(--umd-white)', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
                             <div className="stat-label" style={{fontSize:'11px', fontWeight:'600', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'4px'}}>Waitlist</div>
                             <div className="stat-value" style={{fontSize:'24px', fontWeight:'700', color:'var(--warning-yellow)'}}>
                                 {registrationData.waitlist.length}
                             </div>
                         </div>
                         {registrationData.trip.requires_checkin && (
-                            <div className="stat-card" style={{padding:'12px 16px', background:'white', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
+                            <div className="stat-card" style={{padding:'12px 16px', background:'var(--umd-white)', borderRadius:'8px', border:'1px solid var(--medium-gray)'}}>
                                 <div className="stat-label" style={{fontSize:'11px', fontWeight:'600', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'4px'}}>2-Day Check-In</div>
                                 <div className="stat-value" style={{fontSize:'16px', fontWeight:'700', color: registrationData.trip.checkin_emails_sent ? 'var(--success-green)' : 'var(--text-muted)'}}>
                                     {registrationData.trip.checkin_emails_sent ? (

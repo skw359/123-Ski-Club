@@ -49,7 +49,6 @@ const Home = () => {
         showMessage('Failed to load trips. Please refresh the page.', 'error');
       }
     } catch (e) {
-      console.error('Failed to load trips:', e);
       showMessage('Failed to load trips. Please refresh the page.', 'error');
     } finally {
       setLoading(false);
@@ -66,7 +65,7 @@ const Home = () => {
         setRegistrations(data);
       }
     } catch (e) {
-      console.error('Failed to check registrations:', e);
+      // silently fail — non-critical
     }
   };
 
@@ -83,7 +82,7 @@ const Home = () => {
         }
       }
     } catch (e) {
-      console.error('Failed to load announcement:', e);
+      // silently fail — non-critical
     }
   };
 
@@ -176,7 +175,6 @@ const Home = () => {
         setSearchParams({});
       }
     } catch (error) {
-      console.error('Error loading check-in:', error);
       showMessage('Failed to load check-in information', 'error');
       setSearchParams({});
     }
@@ -223,7 +221,6 @@ const Home = () => {
         showMessage(result.error || 'Failed to confirm check-in', 'error');
       }
     } catch (error) {
-      console.error('Error confirming check-in:', error);
       showMessage('Network error. Please try again.', 'error');
     } finally {
       setProcessingCheckIn(false);
@@ -256,7 +253,6 @@ const Home = () => {
         showMessage(result.error || 'Failed to decline check-in', 'error');
       }
     } catch (error) {
-      console.error('Error declining check-in:', error);
       showMessage('Network error. Please try again.', 'error');
     } finally {
       setProcessingCheckIn(false);
@@ -326,14 +322,6 @@ const Home = () => {
     const currentTime = new Date();
     const registrationOpensAt = trip.registration_opens_at ? new Date(trip.registration_opens_at) : null;
     const isRegistrationOpen = !registrationOpensAt || currentTime >= registrationOpensAt;
-
-    console.log('Trip:', trip.name, {
-      registration_opens_at: trip.registration_opens_at,
-      registrationOpensAt: registrationOpensAt,
-      currentTime: currentTime,
-      isRegistrationOpen: isRegistrationOpen,
-      isPast: isPast
-    });
 
     let capacityClass = '';
     let statusClass = '';

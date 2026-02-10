@@ -41,7 +41,6 @@ const CheckIn = () => {
                 setShowManualForm(true);
             }
         } catch (error) {
-            console.log('Not logged in', error);
             setShowManualForm(true);
         }
     };
@@ -63,7 +62,6 @@ const CheckIn = () => {
             await autoCheckIn(user);
 
         } catch (err) {
-            console.error("Status check failed", err);
             setShowAuthSection(true);
         }
     };
@@ -92,7 +90,6 @@ const CheckIn = () => {
             showSuccess(`Welcome, ${user.first_name}! You're all checked in.`, data.matched);
 
         } catch (error) {
-            console.error('Auto check-in error:', error);
             showError(error.message);
             setShowAuthSection(true);
             setShowCancelManual(true);
@@ -144,7 +141,6 @@ const CheckIn = () => {
             }
 
         } catch (error) {
-            console.error('Load session error:', error);
             showError('Failed to load check-in information.');
         }
     };
@@ -174,7 +170,6 @@ const CheckIn = () => {
             setShowAuthSection(false);
 
         } catch (error) {
-            console.error('Check-in error:', error);
             showError(error.message);
             setIsSubmitting(false);
         }
@@ -211,7 +206,6 @@ const CheckIn = () => {
             setShowAuthSection(false);
 
         } catch (error) {
-            console.error('Check-in error:', error);
             showError(error.message);
             setIsSubmitting(false);
         }

@@ -120,7 +120,7 @@ export default function Information() {
         setDropdownOpen(false);
       }
     } catch (err) {
-      console.error("Auth check failed:", err);
+      // auth check failed — treat as logged out
     }
   }
 
@@ -249,13 +249,11 @@ export default function Information() {
             link.href = "#";
             link.onclick = (e) => {
               e.preventDefault();
-              console.log("Internal link clicked:", annotation.dest);
             };
           } else if (annotation.actions && annotation.actions.Action) {
             link.href = "#";
             link.onclick = (e) => {
               e.preventDefault();
-              console.log("Action clicked:", annotation.actions);
             };
           }
 
@@ -267,7 +265,7 @@ export default function Information() {
 
       container.appendChild(annotationLayer);
     } catch (error) {
-      console.warn("Failed to render annotations:", error);
+      // annotation rendering failed — non-critical, skip silently
     }
   }
 
@@ -291,7 +289,7 @@ export default function Information() {
 
       container.appendChild(textLayer);
     } catch (error) {
-      console.warn("Failed to render text layer:", error);
+      // text layer rendering failed — non-critical, skip silently
     }
   }
 
@@ -351,7 +349,6 @@ export default function Information() {
         placeholder.replaceWith(pageContainer);
       } catch (e) {
         placeholder.innerHTML = `<div class="error">Failed to render page ${pageNum}</div>`;
-        console.error("Page render error:", e);
       }
     };
 
@@ -389,8 +386,6 @@ export default function Information() {
 
     if (!isPdfSig) {
       const sample = new TextDecoder("utf-8").decode(buf.slice(0, 200)).trim();
-      console.error("Not a PDF. content-type:", contentType, "first bytes:", headText, "sample:", sample);
-
       throw new Error(
         `URL did not return a PDF. content-type="${contentType}", first bytes="${headText}". ` +
           `This might be a (SPA fallback/redirect) instead of the file.`
@@ -422,8 +417,6 @@ export default function Information() {
       scheduleRender(pdf, i, ph);
     }
   } catch (error) {
-    console.error("Boot error:", error);
-
     const msg = String(error?.message || "");
     if (msg.includes("fetch failed") || msg.includes("PDF fetch failed")) {
       showPdfError(`Could not fetch PDF from "${PDF_URL}". ${msg}`);
