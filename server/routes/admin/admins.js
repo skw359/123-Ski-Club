@@ -1,7 +1,5 @@
-// ──────────────────────────────────────────────────────────────────────────────
 // Admin Management Routes
 // Get all admins, add new admins, remove admin privileges
-// ──────────────────────────────────────────────────────────────────────────────
 
 const express = require('express');
 const router = express.Router();
@@ -9,11 +7,8 @@ const router = express.Router();
 const { pool } = require('../../config');
 const { isUmdEmail } = require('../../utils/helpers');
 const { adminRequired } = require('../../middleware/auth');
-
-// All routes in this file require admin auth
 router.use(adminRequired);
 
-// Get all admins
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(

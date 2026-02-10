@@ -200,7 +200,7 @@ router.get('/stats/daily-signups', async (req, res) => {
     });
   } catch (err) {
     console.error('Error in daily-signups endpoint:', err);
-    res.status(500).json({ error: 'Failed to fetch daily signup statistics', details: err.message });
+    res.status(500).json({ error: 'Failed to fetch daily signup statistics' });
   }
 });
 

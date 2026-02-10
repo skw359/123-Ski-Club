@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
+import { apiUrl } from '../config/api';
 
 const FAQs = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -12,7 +13,7 @@ const FAQs = () => {
     setActiveIndex(activeIndex === index ? null : index);
   };
 
-  const faqData = [
+  const defaultFaqData = [
     {
       category: 'General Questions',
       questions: [
@@ -61,6 +62,35 @@ const FAQs = () => {
       ]
     }
   ];
+
+  const [faqData, setFaqData] = useState(defaultFaqData);
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/faqs'), { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) {
+            // Group by category
+            const grouped = {};
+            data.forEach(faq => {
+              if (!grouped[faq.category]) grouped[faq.category] = [];
+              grouped[faq.category].push({ question: faq.question, answer: faq.answer });
+            });
+            const ordered = Object.keys(grouped).map(cat => ({
+              category: cat,
+              questions: grouped[cat]
+            }));
+            setFaqData(ordered);
+          }
+        }
+      } catch (e) {
+        // silently fail — use hardcoded defaults
+      }
+    };
+    fetchFaqs();
+  }, []);
 
   let globalIndex = 0;
 

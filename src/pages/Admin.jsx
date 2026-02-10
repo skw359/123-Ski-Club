@@ -3,7 +3,7 @@ import './Admin.css';
 import { useNotify } from '../context/NotificationContext';
 import { getTimeBasedGreeting } from '../utils/admin/greetings';
 
-// --- UTILITY FUNCTIONS ---
+// utilitty functions
 const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -46,18 +46,17 @@ const getPromotionDeadlineCountdown = (promotionExpiresAt) => {
 const getCheckInStatus = (tripDate) => {
     if (!tripDate) return { status: 'unknown', text: 'N/A' };
 
-    // Parse date in LOCAL time (not UTC) to avoid timezone shifting
-    const dateStr = tripDate.split('T')[0]; // Get just the date part (YYYY-MM-DD)
+    const dateStr = tripDate.split('T')[0]; 
     const [year, month, day] = dateStr.split('-').map(Number);
-    const tripDateTime = new Date(year, month - 1, day); // month is 0-indexed
+    const tripDateTime = new Date(year, month - 1, day);
     const now = new Date();
 
-    // Check-in ALWAYS closes at 11:59 PM, 2 days before trip (regardless of when it opened)
+    // check-in ALWAYS closes at 11:59 PM, 2 days before trip (regardless of when it opened)
     const closesAt = new Date(tripDateTime);
     closesAt.setDate(tripDateTime.getDate() - 2);
     closesAt.setHours(23, 59, 59, 999);
 
-    // Check-in should open at 12:00 AM, 2 days before trip
+    // check-in should open at 12:00 AM, 2 days before trip
     const shouldOpenAt = new Date(closesAt);
     shouldOpenAt.setHours(0, 0, 0, 0);
 
@@ -130,7 +129,7 @@ const getCheckInCountdown = (tripDate) => {
     return { status: 'closed', text: 'Window Closed', badgeClass: 'status-error' };
 };
 
-// --- COMPONENT ---
+// component
 export default function Admin() {
     // -- Notification System --
     const notify = useNotify();
@@ -178,6 +177,14 @@ export default function Admin() {
     // -- Settings --
     const [settings, setSettings] = useState({ tripSafety: false, externalEmails: false });
 
+    // -- Page Editor --
+    const [pageEditorTab, setPageEditorTab] = useState('home');
+    const [pageContent, setPageContent] = useState({});
+    const [pageFaqs, setPageFaqs] = useState([]);
+    const [editingFaq, setEditingFaq] = useState(null);
+    const [faqModalOpen, setFaqModalOpen] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+
     // -- Modals / Edit State --
     const [modals, setModals] = useState({
         welcome: false, trip: false, registrations: false, addAdmin: false,
@@ -223,7 +230,7 @@ export default function Admin() {
     const startAttendanceFormRef = useRef(null);
     const announcementFormRef = useRef(null);
 
-    // --- API HELPER ---
+// api helper
     const fetchWithAuth = useCallback(async (url, options = {}) => {
         try {
             const res = await fetch(url, {
@@ -241,7 +248,7 @@ export default function Admin() {
         }
     }, []);
 
-    // --- TAB SWITCHING WITH FADE ---
+// tab switching with fade
     const switchTab = (newTab) => {
         if (newTab === activeTab) return;
         
@@ -252,7 +259,7 @@ export default function Admin() {
         }, 250); // Match the fade-out animation duration
     };
 
-    // --- EFFECTS ---
+// effects
 
     // 1. Theme
     useEffect(() => {
@@ -307,6 +314,7 @@ export default function Admin() {
             case 'announcements': loadAnnouncements(); break;
             case 'logs': loadLogs(1); break;
             case 'settings': loadSettings(); break;
+            case 'pages': loadPageContent(); loadPageFaqs(); break;
         }
 
         // Title Update
@@ -316,6 +324,7 @@ export default function Admin() {
             const map = {
                 users: 'User Management', admins: 'Admin Management', pdf: 'PDF Management',
                 checkins: 'Check-in Status', attendance: 'Bus Attendance', announcements: 'Announcements',
+                pages: 'Page Editor',
                 logs: 'Activity Logs', settings: 'Settings'
             };
             setPageTitle(map[activeTab] || 'Dashboard');
@@ -346,7 +355,7 @@ export default function Admin() {
         return () => clearInterval(intervalId);
     }, [modals.registrations]);
 
-    // --- CONFIRMATION DIALOG HELPER ---
+// confirmation dialog helper
     const showConfirm = (message) => {
         return new Promise((resolve) => {
             setConfirmConfig({
@@ -360,7 +369,7 @@ export default function Admin() {
         });
     };
 
-    // --- DASHBOARD FUNCTIONS ---
+// dashboard functions
     const loadDashboardData = async () => {
         setLoading(true);
         const statsRes = await fetchWithAuth('/api/admin/dashboard/stats');
@@ -401,7 +410,7 @@ export default function Admin() {
         }
     };
 
-    // --- USER MANAGEMENT ---
+// user management
     const loadUsers = async (search = '', page = 1) => {
         setLoading(true);
         const url = `/api/admin/users?page=${page}&limit=50&search=${encodeURIComponent(search)}`;
@@ -441,7 +450,7 @@ export default function Admin() {
         }
     };
 
-    // --- ADMIN MANAGEMENT ---
+// admin management
     const loadAdmins = async () => {
         setLoading(true);
         const res = await fetchWithAuth('/api/admin/admins');
@@ -483,7 +492,7 @@ export default function Admin() {
         }
     };
 
-    // --- Load Activity Logs ---
+// load activity logs
     const loadLogs = async (page = 1) => {
         setLoading(true);
         const res = await fetchWithAuth(`/api/admin/activity-logs?page=${page}&limit=50`);
@@ -495,7 +504,7 @@ export default function Admin() {
         setLoading(false);
     };
 
-    // --- TRIP MANAGEMENT (Modal + Questions) ---
+// trip management (modal + questions)
     const openTripModal = async (trip = null) => {
         setEditingTrip(trip);
         setCustomQuestions([]);
@@ -586,7 +595,7 @@ export default function Admin() {
         setCustomQuestions(copy);
     };
 
-    // --- REGISTRATIONS ---
+// registrations
     const viewRegistrations = async (tripId) => {
         setSelectedRegistrationTripId(tripId);
         setModals(m => ({ ...m, registrations: true }));
@@ -706,7 +715,7 @@ export default function Admin() {
         setDragOverIndex(null);
     };
 
-    // --- MANUAL ADD PERSON ---
+// manual add person
     const searchUsersForAdd = async (searchTerm) => {
         if (!searchTerm || searchTerm.length < 2) {
             setAddPersonResults([]);
@@ -742,7 +751,7 @@ export default function Admin() {
         }
     };
 
-    // --- GIVEAWAY ---
+    // giveaways
     const togglePrize = async (regId, prizeType, currentValue) => {
         const newValue = !currentValue;
         const prizeLabel = prizeType === 'rental' ? 'Rental' : 'Lift Ticket';
@@ -806,7 +815,7 @@ export default function Admin() {
         }
     };
 
-    // --- ANNOUNCEMENTS ---
+// announcements
     const loadAnnouncements = async () => {
         setLoading(true);
         const res = await fetchWithAuth('/api/admin/announcements');
@@ -882,7 +891,7 @@ export default function Admin() {
         }
     };
 
-    // --- PDF MANAGEMENT ---
+// pdf management
     const loadPdfStatus = async () => {
         const res = await fetchWithAuth('/api/admin/pdf/status');
         if (res?.ok) setPdfStatus(await res.json());
@@ -915,7 +924,7 @@ export default function Admin() {
         }
     };
 
-    // --- SETTINGS ---
+// settings
     const loadSettings = async () => {
         const s1 = await fetchWithAuth('/api/admin/settings/trip-safety');
         const s2 = await fetchWithAuth('/api/admin/settings/external-emails');
@@ -944,7 +953,118 @@ export default function Admin() {
         }
     };
 
-    // --- CHECK-INS ---
+// page editor functions
+    const loadPageContent = async () => {
+        setLoading(true);
+        const res = await fetchWithAuth('/api/admin/pages/content');
+        if (res?.ok) {
+            const data = await res.json();
+            const contentMap = {};
+            data.forEach(item => { contentMap[item.content_key] = item.content_value || ''; });
+            setPageContent(contentMap);
+        }
+        setLoading(false);
+    };
+
+    const savePageContent = async (key, value) => {
+        const res = await fetchWithAuth('/api/admin/pages/content/' + key, {
+            method: 'PUT', body: JSON.stringify({ value })
+        });
+        if (res?.ok) {
+            setPageContent(prev => ({ ...prev, [key]: value }));
+            notify({ type: 'success', message: 'Content saved.' });
+        } else {
+            notify({ type: 'error', message: 'Failed to save content.' });
+        }
+    };
+
+    const handlePageImageUpload = async (key, file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('key', key);
+        try {
+            const res = await fetch('/api/admin/pages/content/upload-image', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setPageContent(prev => ({ ...prev, [key]: data.content_value }));
+                notify({ type: 'success', message: 'Image uploaded.' });
+            } else {
+                notify({ type: 'error', message: 'Failed to upload image.' });
+            }
+        } catch {
+            notify({ type: 'error', message: 'Failed to upload image.' });
+        }
+    };
+
+    const removePageImage = async (key) => {
+        const res = await fetchWithAuth('/api/admin/pages/content/' + key, {
+            method: 'PUT', body: JSON.stringify({ value: null })
+        });
+        if (res?.ok) {
+            setPageContent(prev => ({ ...prev, [key]: '' }));
+            notify({ type: 'success', message: 'Image removed.' });
+        }
+    };
+
+    const loadPageFaqs = async () => {
+        const res = await fetchWithAuth('/api/admin/pages/faqs');
+        if (res?.ok) setPageFaqs(await res.json());
+    };
+
+    const openFaqModal = (faq = null) => {
+        setEditingFaq(faq ? { ...faq } : { category: '', question: '', answer: '', sort_order: 0, category_order: 0 });
+        setFaqModalOpen(true);
+    };
+
+    const saveFaq = async () => {
+        if (!editingFaq) return;
+        const isNew = !editingFaq.id;
+        const url = isNew ? '/api/admin/pages/faqs' : `/api/admin/pages/faqs/${editingFaq.id}`;
+        const method = isNew ? 'POST' : 'PUT';
+        const res = await fetchWithAuth(url, { method, body: JSON.stringify(editingFaq) });
+        if (res?.ok) {
+            notify({ type: 'success', message: `FAQ ${isNew ? 'created' : 'updated'}.` });
+            setFaqModalOpen(false);
+            setEditingFaq(null);
+            loadPageFaqs();
+        } else {
+            notify({ type: 'error', message: 'Failed to save FAQ.' });
+        }
+    };
+
+    const deleteFaq = async (id) => {
+        if (!await showConfirm('Delete this FAQ?')) return;
+        const res = await fetchWithAuth(`/api/admin/pages/faqs/${id}`, { method: 'DELETE' });
+        if (res?.ok) {
+            notify({ type: 'success', message: 'FAQ deleted.' });
+            loadPageFaqs();
+        } else {
+            notify({ type: 'error', message: 'Failed to delete FAQ.' });
+        }
+    };
+
+    const reorderFaq = async (faqId, direction) => {
+        const faq = pageFaqs.find(f => f.id === faqId);
+        if (!faq) return;
+        const sameCat = pageFaqs.filter(f => f.category === faq.category).sort((a, b) => a.sort_order - b.sort_order);
+        const idx = sameCat.findIndex(f => f.id === faqId);
+        const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= sameCat.length) return;
+        const items = [
+            { id: sameCat[idx].id, sort_order: sameCat[swapIdx].sort_order, category_order: sameCat[swapIdx].category_order },
+            { id: sameCat[swapIdx].id, sort_order: sameCat[idx].sort_order, category_order: sameCat[idx].category_order }
+        ];
+        const res = await fetchWithAuth('/api/admin/pages/faqs/reorder', {
+            method: 'PUT', body: JSON.stringify({ items })
+        });
+        if (res?.ok) loadPageFaqs();
+    };
+
+// check-ins
     const loadCheckInManagement = async () => {
         setLoading(true);
         const res = await fetchWithAuth('/api/admin/check-in-overview');
@@ -1007,7 +1127,7 @@ export default function Admin() {
         }
     };
 
-    // --- ATTENDANCE SYSTEM (The Beast) ---
+// attendance system (the beast)
     const loadAttendanceSessions = async () => {
         setLoading(true);
         const res = await fetchWithAuth('/api/admin/attendance/sessions');
@@ -1142,7 +1262,7 @@ export default function Admin() {
         // Helper to normalize strings for matching
         const norm = str => str ? str.toLowerCase().trim() : '';
 
-        // --- PASS 1: Build person status map with exact + fuzzy matching ---
+// pass 1: build person status map with exact + fuzzy matching
         let availableCheckins = [...checkins];
         const personStatusMap = new Map(); // Key: registration_id or "first|last", Value: checkin object
 
@@ -1199,7 +1319,7 @@ export default function Admin() {
             }
         }
 
-        // --- BUILD DISPLAY LIST ---
+// build display list
         let displayList = expected.map(person => {
             const key = person.registration_id || `${norm(person.first_name)}|${norm(person.last_name)}`;
             const checkin = personStatusMap.get(key);
@@ -1228,7 +1348,7 @@ export default function Admin() {
             return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
         });
 
-        // --- RENDER ---
+// render
         const expectedRows = displayList.map(p => (
             <div
                 key={p.registration_id || `${p.first_name}-${p.last_name}`}
@@ -1306,7 +1426,7 @@ export default function Admin() {
 
     return (
         <div className="app-container">
-            {/* --- SIDEBAR --- */}
+            {/* sidebar */}
             <div className={`sidebar ${sidebarActive ? 'active' : ''}`}>
                 <div className="brand">
                     <i className="fas fa-snowflake"></i> <span>123 Ski Club</span>
@@ -1336,6 +1456,9 @@ export default function Admin() {
                     <a className={`menu-item ${activeTab === 'pdf' ? 'active' : ''}`} onClick={() => switchTab('pdf')}>
                         <i className="fas fa-file-pdf"></i> <span>PDF Management</span>
                     </a>
+                    <a className={`menu-item ${activeTab === 'pages' ? 'active' : ''}`} onClick={() => switchTab('pages')}>
+                        <i className="fas fa-edit"></i> <span>Page Editor</span>
+                    </a>
 
                     <div className="menu-section-title">System</div>
                     <a className={`menu-item ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => switchTab('logs')}>
@@ -1359,7 +1482,7 @@ export default function Admin() {
                 </div>
             </div>
 
-            {/* --- MAIN CONTENT --- */}
+            {/* main content */}
             <div className="main-content">
                 <div className={`content-overlay ${sidebarActive ? 'active' : ''}`} onClick={() => setSidebarActive(false)}></div>
 
@@ -1380,7 +1503,7 @@ export default function Admin() {
 
                 {loading && <div className="loading"></div>}
 
-                {/* --- DASHBOARD VIEW --- */}
+                {/* dashboard view */}
                 {activeTab === 'dashboard' && dashboardStats && (
                     <div className={`content-section ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="dashboard-widgets">
@@ -1507,7 +1630,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- USERS VIEW --- */}
+                {/* users view */}
                 {activeTab === 'users' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1550,7 +1673,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- ADMINS VIEW --- */}
+                {/* admins view */}
                 {activeTab === 'admins' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1573,7 +1696,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- PDF VIEW --- */}
+                {/* pdf view */}
                 {activeTab === 'pdf' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1602,7 +1725,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- ACTIVITY LOGS VIEW --- */}
+                {/* activity logs view */}
                 {activeTab === 'logs' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1682,7 +1805,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- SETTINGS VIEW --- */}
+                {/* settings view */}
                 {activeTab === 'settings' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                          <div className="data-header"><div className="data-title">Trip Safety Settings</div></div>
@@ -1699,7 +1822,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- CHECKINS VIEW --- */}
+                {/* checkins view */}
                 {activeTab === 'checkins' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1733,7 +1856,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- ANNOUNCEMENTS VIEW --- */}
+                {/* announcements view */}
                 {activeTab === 'announcements' && (
                     <div className={`data-card ${fading ? 'fade-out' : 'fade-in'}`}>
                         <div className="data-header">
@@ -1762,7 +1885,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                {/* --- ATTENDANCE VIEW --- */}
+                {/* attendance view */}
                 {activeTab === 'attendance' && (
                     <div className={`content-section ${fading ? 'fade-out' : 'fade-in'}`}>
                         {!activeSession ? (
@@ -1849,10 +1972,192 @@ export default function Admin() {
                     </div>
                 )}
                 
+                {/* page editor view */}
+                {activeTab === 'pages' && (
+                    <div className={`content-section ${fading ? 'fade-out' : 'fade-in'}`}>
+                        <div className="page-editor-tabs">
+                            <button className={`page-editor-tab ${pageEditorTab === 'home' ? 'active' : ''}`} onClick={() => setPageEditorTab('home')}>Home Page</button>
+                            <button className={`page-editor-tab ${pageEditorTab === 'about' ? 'active' : ''}`} onClick={() => setPageEditorTab('about')}>About Page</button>
+                            <button className={`page-editor-tab ${pageEditorTab === 'faqs' ? 'active' : ''}`} onClick={() => setPageEditorTab('faqs')}>FAQ Manager</button>
+                        </div>
+
+                        {/* Home Page Sub-tab */}
+                        {pageEditorTab === 'home' && (
+                            <div>
+                                <div className="page-editor-section">
+                                    <h4><i className="fas fa-image" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Hero Background Image</h4>
+                                    {pageContent.home_hero_image && (
+                                        <img src={pageContent.home_hero_image} alt="Hero background" className="page-editor-image-preview" onError={e => { e.target.style.display = 'none'; }} />
+                                    )}
+                                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e => { if (e.target.files[0]) handlePageImageUpload('home_hero_image', e.target.files[0]); }} style={{fontSize:'13px'}} />
+                                </div>
+
+                                <div className="page-editor-section">
+                                    <h4><i className="fas fa-heading" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Banner Text</h4>
+                                    <div className="form-group">
+                                        <label className="form-label">Hero Title</label>
+                                        <input className="form-control" value={pageContent.home_hero_title || ''} onChange={e => setPageContent(p => ({...p, home_hero_title: e.target.value}))} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Hero Subtitle</label>
+                                        <textarea className="form-control" rows="2" value={pageContent.home_hero_subtitle || ''} onChange={e => setPageContent(p => ({...p, home_hero_subtitle: e.target.value}))} />
+                                    </div>
+                                    <button className="btn btn-primary btn-sm" onClick={() => { savePageContent('home_hero_title', pageContent.home_hero_title); savePageContent('home_hero_subtitle', pageContent.home_hero_subtitle); }}><i className="fas fa-save"></i> Save Banner Text</button>
+                                </div>
+
+                                <div className="page-editor-section">
+                                    <h4><i className="fas fa-star" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Header Logo (Optional)</h4>
+                                    <p style={{fontSize:'12px', color:'var(--text-muted)', marginBottom:'10px'}}>Replaces the default logo in the top-left navbar on the homepage. Leave empty to use the default UMD logo.</p>
+                                    {pageContent.home_banner_logo ? (
+                                        <div>
+                                            <img src={pageContent.home_banner_logo} alt="Banner logo" className="page-editor-image-preview logo" />
+                                            <div style={{display:'flex', gap:'10px', marginTop:'5px'}}>
+                                                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e => { if (e.target.files[0]) handlePageImageUpload('home_banner_logo', e.target.files[0]); }} style={{fontSize:'13px'}} />
+                                                <button className="btn btn-danger btn-sm" onClick={() => removePageImage('home_banner_logo')}><i className="fas fa-trash"></i> Remove</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e => { if (e.target.files[0]) handlePageImageUpload('home_banner_logo', e.target.files[0]); }} style={{fontSize:'13px'}} />
+                                    )}
+                                </div>
+
+                                <div className="page-editor-section">
+                                    <h4><i className="fas fa-eye" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Live Preview</h4>
+                                    {pageContent.home_banner_logo && (
+                                        <div style={{display:'flex', alignItems:'center', gap:'10px', padding:'10px 15px', background:'var(--umd-white)', borderRadius:'6px', border:'1px solid var(--medium-gray)', marginBottom:'10px'}}>
+                                            <img src={pageContent.home_banner_logo} alt="logo" style={{height:'30px', objectFit:'contain'}} />
+                                            <span style={{fontWeight:600, fontSize:'14px', color:'var(--text-primary)'}}>123 Ski Club</span>
+                                            <span style={{fontSize:'11px', color:'var(--text-muted)', marginLeft:'auto'}}>Header logo preview</span>
+                                        </div>
+                                    )}
+                                    <div className="page-editor-hero-preview" style={{backgroundImage: `url('${pageContent.home_hero_image || '/assets/background.jpg'}')`}}>
+                                        <div className="preview-text">
+                                            <h3>{pageContent.home_hero_title || "Welcome to UMD's Premier Ski & Snowboard Club"}</h3>
+                                            <p>{pageContent.home_hero_subtitle || 'Join us for exciting trips, events, and an awesome community of snow enthusiasts!'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* About Page Sub-tab */}
+                        {pageEditorTab === 'about' && (
+                            <div>
+                                {[1, 2, 3].map(n => (
+                                    <div className="page-editor-section" key={n}>
+                                        <h4><i className="fas fa-paragraph" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Section {n}</h4>
+                                        <div className="form-group">
+                                            <label className="form-label">Title</label>
+                                            <input className="form-control" value={pageContent[`about_section_${n}_title`] || ''} onChange={e => setPageContent(p => ({...p, [`about_section_${n}_title`]: e.target.value}))} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Body</label>
+                                            <textarea className="form-control" rows="4" value={pageContent[`about_section_${n}_body`] || ''} onChange={e => setPageContent(p => ({...p, [`about_section_${n}_body`]: e.target.value}))} />
+                                        </div>
+                                        <button className="btn btn-primary btn-sm" onClick={() => { savePageContent(`about_section_${n}_title`, pageContent[`about_section_${n}_title`]); savePageContent(`about_section_${n}_body`, pageContent[`about_section_${n}_body`]); }}><i className="fas fa-save"></i> Save Section {n}</button>
+                                    </div>
+                                ))}
+
+                                <div className="page-editor-section">
+                                    <h4><i className="fas fa-image" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>About Page Image</h4>
+                                    {pageContent.about_image && (
+                                        <img src={pageContent.about_image} alt="About" className="page-editor-image-preview" onError={e => { e.target.style.display = 'none'; }} />
+                                    )}
+                                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e => { if (e.target.files[0]) handlePageImageUpload('about_image', e.target.files[0]); }} style={{fontSize:'13px'}} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FAQ Manager Sub-tab */}
+                        {pageEditorTab === 'faqs' && (
+                            <div>
+                                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+                                    <div className="data-title">FAQs</div>
+                                    <button className="btn btn-primary btn-sm" onClick={() => openFaqModal()}><i className="fas fa-plus"></i> Add FAQ</button>
+                                </div>
+
+                                {(() => {
+                                    const categories = [...new Set(pageFaqs.map(f => f.category))];
+                                    return categories.map(cat => {
+                                        const catFaqs = pageFaqs.filter(f => f.category === cat).sort((a, b) => a.sort_order - b.sort_order);
+                                        return (
+                                            <div className="faq-manager-category" key={cat}>
+                                                <div className="faq-manager-category-header">
+                                                    <h4>{cat} ({catFaqs.length})</h4>
+                                                </div>
+                                                {catFaqs.map((faq, idx) => (
+                                                    <div className="faq-manager-item" key={faq.id}>
+                                                        <div className="faq-manager-item-text">
+                                                            <div className="faq-q">{faq.question}</div>
+                                                            <div className="faq-a">{faq.answer}</div>
+                                                        </div>
+                                                        <div className="faq-manager-item-actions">
+                                                            <button className="faq-reorder-btn" disabled={idx === 0} onClick={() => reorderFaq(faq.id, 'up')} title="Move up"><i className="fas fa-arrow-up"></i></button>
+                                                            <button className="faq-reorder-btn" disabled={idx === catFaqs.length - 1} onClick={() => reorderFaq(faq.id, 'down')} title="Move down"><i className="fas fa-arrow-down"></i></button>
+                                                            <button className="action-btn" onClick={() => openFaqModal(faq)} title="Edit"><i className="fas fa-pen"></i></button>
+                                                            <button className="action-btn" onClick={() => deleteFaq(faq.id)} title="Delete"><i className="fas fa-trash"></i></button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+
+                                <div className="page-editor-section" style={{marginTop:'20px'}}>
+                                    <h4><i className="fas fa-folder-plus" style={{marginRight:'8px', color:'var(--umd-red)'}}></i>Quick Add Category</h4>
+                                    <div style={{display:'flex', gap:'10px'}}>
+                                        <input className="form-control" placeholder="New category name" value={newCategory} onChange={e => setNewCategory(e.target.value)} style={{flex:1}} />
+                                        <button className="btn btn-primary btn-sm" disabled={!newCategory.trim()} onClick={() => {
+                                            setEditingFaq({ category: newCategory.trim(), question: '', answer: '', sort_order: 0, category_order: Math.max(0, ...pageFaqs.map(f => f.category_order)) + 1 });
+                                            setFaqModalOpen(true);
+                                            setNewCategory('');
+                                        }}><i className="fas fa-plus"></i> Add FAQ to Category</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                  <div className="dashboard-footer">Built by a student, for students • Mason Doan</div>
             </div>
 
-            {/* --- MODALS SECTION --- */}
+            {/* faq modal */}
+            <div className={`modal-overlay ${faqModalOpen ? 'active' : ''}`} onClick={(e) => e.target === e.currentTarget && setFaqModalOpen(false)}>
+                <div className="modal" style={{width:'500px'}}>
+                    <div className="modal-header">
+                        <h3 className="modal-title">{editingFaq?.id ? 'Edit FAQ' : 'Add FAQ'}</h3>
+                        <button className="modal-close" onClick={() => setFaqModalOpen(false)}>&times;</button>
+                    </div>
+                    <div className="modal-body">
+                        {editingFaq && (
+                            <>
+                                <div className="form-group">
+                                    <label className="form-label">Category</label>
+                                    <input className="form-control" value={editingFaq.category} onChange={e => setEditingFaq(f => ({...f, category: e.target.value}))} placeholder="e.g. General Questions" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Question</label>
+                                    <textarea className="form-control" rows="2" value={editingFaq.question} onChange={e => setEditingFaq(f => ({...f, question: e.target.value}))} placeholder="Enter the question" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Answer</label>
+                                    <textarea className="form-control" rows="4" value={editingFaq.answer} onChange={e => setEditingFaq(f => ({...f, answer: e.target.value}))} placeholder="Enter the answer" />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-outline" onClick={() => setFaqModalOpen(false)}>Cancel</button>
+                        <button className="btn btn-primary" onClick={saveFaq} disabled={!editingFaq?.question?.trim() || !editingFaq?.answer?.trim() || !editingFaq?.category?.trim()}>
+                            <i className="fas fa-save" style={{marginRight:'5px'}}></i>{editingFaq?.id ? 'Update' : 'Create'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* modals section */}
 
             {/* 1. Trip Modal */}
             <div className={`modal-overlay ${modals.trip ? 'active' : ''}`} onClick={(e) => e.target === e.currentTarget && setModals(m => ({...m, trip: false}))}>

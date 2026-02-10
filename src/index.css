@@ -29,7 +29,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- TYPOGRAPHY & UTILS --- */
+/* typography and utils */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -49,7 +49,7 @@ a {
   text-align: center;
 }
 
-/* --- BUTTONS --- */
+/* buttons */
 .btn {
   display: inline-block;
   padding: 12px 25px;
@@ -98,7 +98,7 @@ a {
   color: white;
 }
 
-/* --- HEADER / NAVBAR --- */
+/* header / navbar */
 header {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(12px);
@@ -268,7 +268,7 @@ nav a::after {
   color: var(--primary);
 }
 
-/* --- HERO SECTION --- */
+/* hero section */
 .hero {
   background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/assets/background.jpg');
   background-size: cover;
@@ -308,7 +308,7 @@ nav a::after {
   margin-bottom: 30px;
 }
 
-/* --- TRIPS GRID --- */
+/* trips grid */
 .section-heading {
   text-align: center;
   margin: 50px 0 30px;
@@ -460,7 +460,7 @@ nav a::after {
   margin-top: auto;
 }
 
-/* --- FOOTER --- */
+/* footer */
 footer {
   background: rgba(20, 20, 20, 0.95);
   backdrop-filter: blur(20px);
@@ -560,7 +560,7 @@ footer {
   text-decoration: none;
 }
 
-/* --- MESSAGES --- */
+/* messages */
 .message {
   margin: 10px 0;
   padding: 10px 15px;
@@ -580,7 +580,7 @@ footer {
   border: 1px solid #f1aeb5;
 }
 
-/* --- FORMS --- */
+/* forms */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -649,7 +649,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* --- MODAL STYLES --- */
+/* modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -720,7 +720,7 @@ body.modal-open {
   text-align: left;
 }
 
-/* --- BANNERS --- */
+/* banners */
 .check-in-banner {
   background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
   color: var(--dark);
@@ -804,7 +804,7 @@ body.modal-open {
   transform: rotate(90deg);
 }
 
-/* --- SIDEBAR --- */
+/* sidebar */
 .sidebar-notice {
   margin-top: 20px;
   padding: 15px;
@@ -813,7 +813,7 @@ body.modal-open {
   font-size: 14px;
 }
 
-/* --- TRIP DETAIL SPECIFIC --- */
+/* trip detail specific */
 .trip-header {
   background-size: cover;
   background-position: center;
@@ -905,7 +905,7 @@ body.modal-open {
   margin: 0;
 }
 
-/* --- PAGE LAYOUTS --- */
+/* page layouts */
 .page-header {
   background-color: var(--primary);
   color: white;
@@ -951,7 +951,7 @@ body.modal-open {
   box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-/* --- FAQ STYLES --- */
+/* faq styles */
 .faq-hero {
   background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/assets/background.jpg');
   background-size: cover;

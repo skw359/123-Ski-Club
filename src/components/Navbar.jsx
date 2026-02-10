@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Navbar = ({ onLoginClick }) => {
+const Navbar = ({ onLoginClick, customLogo }) => {
   const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -10,7 +10,7 @@ const Navbar = ({ onLoginClick }) => {
     <header>
       <div className="container header-container">
         <Link to="/" className="logo">
-          <img src="/assets/umdM.png" alt="UMD Ski Club Logo" />
+          <img src={customLogo || '/assets/umdM.png'} alt="UMD Ski Club Logo" />
           <h1>123 Ski Club</h1>
         </Link>
 

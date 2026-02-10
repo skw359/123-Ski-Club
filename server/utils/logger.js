@@ -1,7 +1,5 @@
-// ──────────────────────────────────────────────────────────────────────────────
 // Activity Logging Utility
 // Central logging function for user and admin activities
-// ──────────────────────────────────────────────────────────────────────────────
 
 const { pool } = require('../config');
 

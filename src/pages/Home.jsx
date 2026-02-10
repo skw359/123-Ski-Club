@@ -19,10 +19,12 @@ const Home = () => {
   const [checkInModal, setCheckInModal] = useState(null);
   const [processingCheckIn, setProcessingCheckIn] = useState(false);
   const [modalClosing, setModalClosing] = useState(false);
+  const [heroContent, setHeroContent] = useState({});
 
   useEffect(() => {
     fetchTrips();
     fetchAnnouncement();
+    fetchPageContent();
 
     const checkinToken = searchParams.get('checkin');
     if (checkinToken) {
@@ -83,6 +85,20 @@ const Home = () => {
       }
     } catch (e) {
       // silently fail — non-critical
+    }
+  };
+
+  const fetchPageContent = async () => {
+    try {
+      const res = await fetch(apiUrl('/api/page-content'), { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const content = {};
+        data.forEach(item => { content[item.content_key] = item.content_value; });
+        setHeroContent(content);
+      }
+    } catch (e) {
+      // silently fail — use hardcoded defaults
     }
   };
 
@@ -365,7 +381,7 @@ const Home = () => {
           <div className={`trip-status ${statusClass}`}>{statusText}</div>
         </div>
         <div className="trip-details">
-          <div className="trip-date">{formatDate(trip.trip_date)}</div>
+          <div className="trip-date">{formatDateShort(trip.trip_date)}</div>
           <h3 className="trip-location">{trip.name}</h3>
           <p>{trip.description || 'Join us for this exciting trip!'}</p>
           <div className="trip-capacity">
@@ -394,7 +410,7 @@ const Home = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar onLoginClick={() => setShowLogin(true)} customLogo={heroContent.home_banner_logo} />
 
       {message && (
         <div className="container">
@@ -448,9 +464,9 @@ const Home = () => {
         </div>
       )}
 
-      <section className="hero">
-        <h2>Welcome to UMD's Premier Ski & Snowboard Club</h2>
-        <p>Join us for exciting trips, events, and an awesome community of snow enthusiasts! </p>
+      <section className="hero" style={heroContent.home_hero_image && heroContent.home_hero_image !== '/assets/background.jpg' ? {backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${heroContent.home_hero_image}')`} : undefined}>
+        <h2>{heroContent.home_hero_title || "Welcome to UMD's Premier Ski & Snowboard Club"}</h2>
+        <p>{heroContent.home_hero_subtitle || 'Join us for exciting trips, events, and an awesome community of snow enthusiasts!'} </p>
       </section>
 
       <section className="container">

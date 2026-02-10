@@ -76,6 +76,12 @@ app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/admin/attendance', adminAttendanceRoutes);
 app.use('/api/admin/registrations', adminRegistrationsRoutes);
 
+const adminPagesRoutes = require('./routes/admin/pages');
+app.use('/api/admin/pages', adminPagesRoutes);
+
+const pagesRoutes = require('./routes/pages');
+app.use('/api', pagesRoutes);
+
 app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public_dist', 'index.html'));
 });
