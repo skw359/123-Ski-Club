@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Navbar = ({ onLoginClick, customLogo }) => {
+const Navbar = ({ onLoginClick, customLogo, transparent = true }) => {
   const { user, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!transparent) return;
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [transparent]);
+
+  const headerClass = [
+    transparent ? 'header--fixed' : '',
+    transparent && !scrolled ? 'header--transparent' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <header>
+    <header className={headerClass}>
       <div className="container header-container">
         <Link to="/" className="logo">
           <img src={customLogo || '/assets/umdM.png'} alt="UMD Ski Club Logo" />

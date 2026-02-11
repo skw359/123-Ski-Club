@@ -4,10 +4,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import { apiUrl } from '../config/api';
+import useHeroImage from '../hooks/useHeroImage';
 
 const FAQs = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [activeIndex, setActiveIndex] = useState(null);
+  const heroImageStyle = useHeroImage();
 
   const toggleFAQ = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
@@ -98,12 +100,9 @@ const FAQs = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar onLoginClick={() => setShowLogin(true)} />
 
-      {/* Hero Section */}
-      <section className="faq-hero">
-        <div className="container">
-          <h2>Frequently Asked Questions</h2>
-          <p>Find answers to common questions about the UMD Ski & Snowboard Club, our trips, and membership.</p>
-        </div>
+      <section className="hero" style={heroImageStyle}>
+        <h2>Frequently Asked Questions</h2>
+        <p>Find answers to common questions about the UMD Ski & Snowboard Club, our trips, and membership.</p>
       </section>
 
       {/* FAQ Section */}

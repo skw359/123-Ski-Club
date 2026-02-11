@@ -435,14 +435,17 @@ const Trip = () => {
     <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
       <Navbar onLoginClick={() => setShowLogin(true)} />
       
-      <section className="trip-header" style={{backgroundImage: `url('${trip.image_url || 'https://picsum.photos/1200/400?grayscale'}')`, position: 'relative'}}>
-        <Link to="/" className="back-button" style={{position: 'absolute', top: '20px', left: '20px', zIndex: 10}}>← Back to Trips</Link>
+      <section className="trip-header" style={{backgroundImage: `url('${trip.image_url || 'https://picsum.photos/1200/400?grayscale'}')`}}>
+        <Link to="/" className="back-button">← Back to Trips</Link>
         <div className="container trip-header-content">
-          <h1 style={{fontSize: '48px', marginBottom: '10px'}}>{trip.name}</h1>
-          <div className="trip-date">{new Date(trip.trip_date).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone: 'UTC'})}</div>
-          <div className={`status-badge ${isPast ? 'status-full' : (!isRegistrationOpen ? 'status-full' : (isFull ? 'status-full' : 'status-open'))}`} style={{padding: '8px 15px', borderRadius: '5px', fontWeight: '600', display: 'inline-block'}}>
-             {isPast ? 'Trip Concluded' : (!isRegistrationOpen ? `Opens ${registrationOpensAt.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}` : (isFull ? 'Waitlist Open' : 'Registration Open'))}
-          </div>
+          <span className="trip-header-badge">
+            {isPast ? 'Trip Concluded' : (!isRegistrationOpen ? `Opens ${registrationOpensAt.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}` : (isFull ? 'Waitlist Open' : 'Registration Open'))}
+          </span>
+          <h1 className="trip-header-title">{trip.name}</h1>
+          <p className="trip-header-date">
+            {new Date(trip.trip_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: 'UTC'})}
+            {trip.departure_time && ` • ${new Date(trip.departure_time).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'})}`}
+          </p>
         </div>
       </section>
 

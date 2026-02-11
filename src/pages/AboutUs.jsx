@@ -4,10 +4,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import { apiUrl } from '../config/api';
+import useHeroImage from '../hooks/useHeroImage';
 
 const AboutUs = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [content, setContent] = useState({});
+  const heroImageStyle = useHeroImage();
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -30,15 +32,11 @@ const AboutUs = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar onLoginClick={() => setShowLogin(true)} />
 
-      {/* Page Header */}
-      <div className="page-header">
-        <div className="container">
-          <h2>About Us</h2>
-          <p>123 I Like To Ski: UMD's Premier Snow Sports Community</p>
-        </div>
-      </div>
+      <section className="hero" style={heroImageStyle}>
+        <h2>About Us</h2>
+        <p>123 I Like To Ski: UMD's Premier Snow Sports Community</p>
+      </section>
 
-      {/* Main Content */}
       <section className="content-section">
         <div className="container">
           <div className="about-grid">

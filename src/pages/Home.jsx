@@ -5,12 +5,14 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import { useAuth } from '../context/AuthContext';
 import { apiUrl } from '../config/api';
+import useHeroImage from '../hooks/useHeroImage';
 
 const Home = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const heroImageStyle = useHeroImage();
   const [registrations, setRegistrations] = useState([]);
   const [showMyTrips, setShowMyTrips] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
@@ -464,7 +466,7 @@ const Home = () => {
         </div>
       )}
 
-      <section className="hero" style={heroContent.home_hero_image && heroContent.home_hero_image !== '/assets/background.jpg' ? {backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${heroContent.home_hero_image}')`} : undefined}>
+      <section className="hero" style={heroImageStyle}>
         <h2>{heroContent.home_hero_title || "Welcome to UMD's Premier Ski & Snowboard Club"}</h2>
         <p>{heroContent.home_hero_subtitle || 'Join us for exciting trips, events, and an awesome community of snow enthusiasts!'} </p>
       </section>
