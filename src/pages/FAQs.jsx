@@ -153,17 +153,6 @@ const FAQs = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta-section">
-        <div className="container">
-          <h3>Ready to Hit the Slopes with Us?</h3>
-          <p>Join 123 I Like To Ski and be part of our community of snow enthusiasts. Register now to access trip discounts, social events, and more!</p>
-          <div className="cta-buttons">
-            <Link to="/" className="btn secondary">View Upcoming Trips</Link>
-          </div>
-        </div>
-      </section>
-
       <Footer />
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
     </div>
