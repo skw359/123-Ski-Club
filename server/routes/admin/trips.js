@@ -4,7 +4,7 @@ const router = express.Router();
 const { pool } = require('../../config');
 const { logActivity } = require('../../utils/logger');
 const { adminRequired } = require('../../middleware/auth');
-const { waiverUpload } = require('../../middleware/multer');
+const { waiverUpload, tripImageUpload } = require('../../middleware/multer');
 const fs = require('fs');
 const path = require('path');
 
@@ -431,6 +431,36 @@ router.delete('/:id/waiver', async (req, res) => {
   } catch (err) {
     console.error('Waiver delete error:', err);
     res.status(500).json({ error: 'Failed to delete waiver' });
+  }
+});
+
+router.post('/:id/image', tripImageUpload.single('image'), async (req, res) => {
+  try {
+    const tripId = Number(req.params.id);
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+
+    const newPath = `/public_uploads/trip-images/${req.file.filename}`;
+
+    // Delete old uploaded image if it was a local file
+    const { rows: existing } = await pool.query('SELECT image_url FROM trips WHERE id = $1', [tripId]);
+    if (existing.length > 0 && existing[0].image_url && existing[0].image_url.includes('/trip-images/')) {
+      const oldFile = path.join(__dirname, '..', '..', '..', 'public_uploads', 'trip-images', path.basename(existing[0].image_url));
+      if (fs.existsSync(oldFile)) {
+        fs.unlinkSync(oldFile);
+      }
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE trips SET image_url = $1 WHERE id = $2 RETURNING image_url',
+      [newPath, tripId]
+    );
+
+    res.json({ success: true, image_url: rows[0].image_url });
+  } catch (err) {
+    console.error('Trip image upload error:', err);
+    res.status(500).json({ error: 'Failed to upload trip image' });
   }
 });
 

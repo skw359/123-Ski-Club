@@ -113,9 +113,42 @@ const pageImageUpload = multer({
   }
 });
 
+// Configure multer for trip image uploads (banners)
+const tripImagesDir = path.join(__dirname, '..', '..', 'public_uploads', 'trip-images');
+if (!fs.existsSync(tripImagesDir)){
+    fs.mkdirSync(tripImagesDir, { recursive: true });
+}
+
+const tripImageStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, tripImagesDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const tripImageUpload = multer({
+  storage: tripImageStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, WebP, and GIF images are allowed'));
+    }
+  }
+});
+
 module.exports = {
   upload,
   waiverUpload,
   excelUpload,
   pageImageUpload,
+  tripImageUpload,
 };

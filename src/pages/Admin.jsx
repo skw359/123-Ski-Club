@@ -196,6 +196,7 @@ export default function Admin() {
     const [customQuestions, setCustomQuestions] = useState([]);
     const [tripModalMsg, setTripModalMsg] = useState(null);
     const [pendingWaiver, setPendingWaiver] = useState(null); // For new trips
+    const [pendingTripImage, setPendingTripImage] = useState(null); // For trip banner upload
 
     const [registrationData, setRegistrationData] = useState({ active: [], waitlist: [], trip: {} });
     const [selectedRegistrationTripId, setSelectedRegistrationTripId] = useState(null);
@@ -510,6 +511,7 @@ export default function Admin() {
         setCustomQuestions([]);
         setTripModalMsg(null);
         setPendingWaiver(null);
+        setPendingTripImage(null);
         if (trip) {
             const res = await fetchWithAuth(`/api/trips/${trip.id}/questions`);
             if (res?.ok) setCustomQuestions(await res.json());
@@ -525,6 +527,9 @@ export default function Admin() {
         const fd = new FormData(e.target);
         const data = Object.fromEntries(fd.entries());
 
+        // Remove the file input from JSON data (handled separately)
+        delete data.trip_image;
+
         // Transform Checkboxes
         data.ask_default_questions = !!data.ask_default_questions;
         data.requires_checkin = !!data.requires_checkin;
@@ -539,6 +544,13 @@ export default function Admin() {
         const res = await fetchWithAuth(url, { method, body: JSON.stringify(data) });
         if (res?.ok) {
             const savedTrip = await res.json();
+
+            // Handle Pending Trip Image Upload
+            if (pendingTripImage) {
+                const imgFd = new FormData();
+                imgFd.append('image', pendingTripImage);
+                await fetch(`/api/admin/trips/${savedTrip.id}/image`, {method:'POST', body: imgFd, credentials: 'include'});
+            }
 
             // Handle Pending Waiver for New Trips
             if (!editingTrip && pendingWaiver) {
@@ -2187,8 +2199,29 @@ export default function Admin() {
                                 <div className="form-group"><label className="form-label">Capacity</label><input name="capacity" type="number" className="form-control" defaultValue={editingTrip?.capacity || 54} /></div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Image URL</label>
-                                <input name="image_url" className="form-control" defaultValue={editingTrip?.image_url} />
+                                <label className="form-label">Banner Image</label>
+                                <input name="image_url" className="form-control" defaultValue={editingTrip?.image_url} placeholder="Paste an image URL" />
+                                <div style={{display:'flex', alignItems:'center', gap:'8px', margin:'8px 0', color:'var(--light-text)', fontSize:'0.85rem'}}>
+                                    <div style={{flex:1, height:'1px', background:'var(--medium-gray)'}}></div>
+                                    <span>or upload from your computer</span>
+                                    <div style={{flex:1, height:'1px', background:'var(--medium-gray)'}}></div>
+                                </div>
+                                <input name="trip_image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="form-control" style={{padding:'8px'}} onChange={(e) => setPendingTripImage(e.target.files[0] || null)} />
+                                {pendingTripImage && (
+                                    <div style={{marginTop:'8px', position:'relative', display:'inline-block'}}>
+                                        <img src={URL.createObjectURL(pendingTripImage)} alt="Preview" style={{maxHeight:'120px', borderRadius:'8px', border:'1px solid var(--medium-gray)'}} />
+                                        <button type="button" onClick={() => { setPendingTripImage(null); const fileInput = document.querySelector('input[name="trip_image"]'); if(fileInput) fileInput.value = ''; }} style={{position:'absolute', top:'-6px', right:'-6px', background:'var(--danger-red)', color:'#fff', border:'none', borderRadius:'50%', width:'22px', height:'22px', cursor:'pointer', fontSize:'12px', display:'flex', alignItems:'center', justifyContent:'center'}}>×</button>
+                                    </div>
+                                )}
+                                {!pendingTripImage && editingTrip?.image_url && (
+                                    <div style={{marginTop:'8px', fontSize:'0.8rem', color:'var(--light-text)'}}>
+                                        <span>Current: </span>
+                                        <img src={editingTrip.image_url} alt="Current banner" style={{maxHeight:'80px', borderRadius:'6px', border:'1px solid var(--medium-gray)', verticalAlign:'middle', marginLeft:'4px'}} />
+                                    </div>
+                                )}
+                                <div style={{fontSize:'0.75rem', color:'var(--light-text)', marginTop:'4px'}}>
+                                    {pendingTripImage ? 'Uploaded image will be used (overrides URL)' : 'If both are provided, the uploaded image takes priority'}
+                                </div>
                             </div>
                              <div className="form-group">
                                 <label className="form-label">Registration Opens (Optional)</label>
