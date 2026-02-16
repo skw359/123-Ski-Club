@@ -94,16 +94,14 @@ The 123 I Like To Ski Club Management System is a full-stack web application tha
 - Can send automated attendance confirmation emails, however, probably will delete this
 - Delete old attendance sessions
 
-#### Analytics Dashboard
+#### Admin Dashboard
 - Trip statistics (total trips, upcoming, completed)
 - Member statistics (total members, registrations, attendance rate)
-- Revenue tracking
 - Recent activity logs
 - Activity timeline visualization with charts
 
 #### Announcements
 - Create, edit, and delete announcements
-- Pin announcements to homepage
 - Activate/pause announcements
 - Automatic dismissal tracking per user
 
@@ -119,9 +117,8 @@ The 123 I Like To Ski Club Management System is a full-stack web application tha
 - Configure system-wide preferences
 
 #### PDF Management
-- Upload general information PDFs
-- Delete outdated PDFs
-- Serve PDFs via public URL (need to change)
+- Upload general information PDFs (this is club specific)
+- Serve PDFs via public URL
 
 #### Giveaway System
 - Random prize drawing for lift tickets and equipment rentals
