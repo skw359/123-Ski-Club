@@ -172,8 +172,4 @@ router.put('/:id/attendance', async (req, res) => {
   }
 });
 
-// Note: Promote/demote endpoints are in routes/waitlist.js
-// Note: User waiver upload has been moved to /api/registrations/:id/waiver
-// See routes/registrations.js for the user-facing waiver upload endpoint
-
 module.exports = router;

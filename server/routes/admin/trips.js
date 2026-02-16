@@ -635,8 +635,9 @@ router.post('/:id/manual-register', async (req, res) => {
       `INSERT INTO registrations (
         trip_id, user_id, equipment_rental, helmet_rental,
         skill_level, emergency_contact_name, emergency_contact_phone,
-        special_requests, terms_agreed, moved_to_waitlist, waitlist_position
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        special_requests, terms_agreed, moved_to_waitlist, waitlist_position,
+        is_manual_registration
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         tripId, user_id,
         'none',
@@ -647,7 +648,8 @@ router.post('/:id/manual-register', async (req, res) => {
         'Manually added by admin',
         true,
         addToWaitlist,
-        waitlistPosition
+        waitlistPosition,
+        true
       ]
     );
 

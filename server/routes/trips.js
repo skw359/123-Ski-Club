@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
 
 const { pool } = require('../config');
 const { authRequired } = require('../middleware/auth');
+const { waiverUpload } = require('../middleware/multer');
 
 async function saveCustomAnswers(client, registrationId, customAnswers) {
   if (!customAnswers || Object.keys(customAnswers).length === 0) {
@@ -10,16 +12,42 @@ async function saveCustomAnswers(client, registrationId, customAnswers) {
   }
 
   for (const [questionId, answer] of Object.entries(customAnswers)) {
-    if (answer && answer.trim().length > 0) {
+    const answerText = typeof answer === 'string'
+      ? answer.trim()
+      : String(answer ?? '').trim();
+
+    if (answerText.length > 0) {
       await client.query(
         `INSERT INTO registration_custom_answers (registration_id, question_id, answer_text)
          VALUES ($1, $2, $3)
          ON CONFLICT (registration_id, question_id)
          DO UPDATE SET answer_text = $3`,
-        [registrationId, Number(questionId), answer.trim()]
+        [registrationId, Number(questionId), answerText]
       );
     }
   }
+}
+
+function parseBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.toLowerCase() === 'true';
+  return Boolean(value);
+}
+
+function parseCustomAnswers(value) {
+  if (!value) return {};
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof value === 'object' ? value : {};
 }
 
 router.get('/', async (req, res) => {
@@ -78,29 +106,50 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/register', authRequired, async (req, res) => {
+router.post('/:id/register', authRequired, waiverUpload.single('waiver'), async (req, res) => {
   const client = await pool.connect();
+  let transactionStarted = false;
+  const cleanupUploadedWaiver = () => {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+  };
+
   try {
     const tripId = Number(req.params.id);
     const userId = req.user.id;
+    const requestBody = (req.body && typeof req.body === 'object') ? req.body : {};
     const {
         equipment_rental, helmet_rental, skill_level,
         emergency_contact_name, emergency_contact_phone,
         special_requests, terms_agreed, custom_answers
-    } = req.body;
+    } = requestBody;
+    const customAnswers = parseCustomAnswers(custom_answers);
+    const helmetRental = parseBoolean(helmet_rental, false);
+    const termsAgreed = parseBoolean(terms_agreed, true);
+    const uploadedWaiverPath = req.file ? `waivers/${req.file.filename}` : null;
 
     const { rows: [trip] } = await pool.query('SELECT * FROM trips WHERE id = $1', [tripId]);
     const { rows: [user] } = await pool.query('SELECT strike_count FROM users WHERE id = $1', [userId]);
 
-    if (!trip) return res.status(404).json({ error: 'Trip not found' });
+    if (!trip) {
+      cleanupUploadedWaiver();
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (trip.waiver_pdf_path && !uploadedWaiverPath) {
+      return res.status(400).json({ error: 'Signed waiver PDF is required before registering for this trip.' });
+    }
 
     const tripTime = new Date(trip.departure_time || trip.trip_date);
     if (tripTime < new Date()) {
+      cleanupUploadedWaiver();
       return res.status(400).json({ error: 'Registration is closed. This trip has already departed.' });
     }
 
     const strikes = user.strike_count || 0;
     if (strikes >= 2) {
+      cleanupUploadedWaiver();
       return res.status(403).json({ error: 'You are currently banned from signing up due to previous no-shows.' });
     }
 
@@ -110,6 +159,7 @@ router.post('/:id/register', authRequired, async (req, res) => {
     }
 
     if (new Date() < openTime) {
+      cleanupUploadedWaiver();
       const msg = strikes === 1
         ? `Due to a strike (one no-show for a previous trip), your signup is delayed 24hrs. Opens: ${openTime.toISOString()}`
         : `Registration opens on ${openTime.toISOString()}`;
@@ -117,6 +167,7 @@ router.post('/:id/register', authRequired, async (req, res) => {
     }
 
     await client.query('BEGIN');
+    transactionStarted = true;
 
     const { rows: [c] } = await client.query(
       'SELECT COUNT(*)::int AS count FROM registrations WHERE trip_id = $1 AND moved_to_waitlist = FALSE',
@@ -140,25 +191,27 @@ router.post('/:id/register', authRequired, async (req, res) => {
       `INSERT INTO registrations (
         trip_id, user_id, equipment_rental, helmet_rental,
         skill_level, emergency_contact_name, emergency_contact_phone,
-        special_requests, terms_agreed, moved_to_waitlist, waitlist_position
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        special_requests, terms_agreed, moved_to_waitlist, waitlist_position,
+        filled_waiver_pdf_path
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING id`,
       [
         tripId, userId,
         equipment_rental || 'none',
-        helmet_rental || false,
+        helmetRental,
         skill_level || 'beginner',
         emergency_contact_name || 'N/A',
         emergency_contact_phone || 'N/A',
         special_requests || '',
-        terms_agreed || true,
+        termsAgreed,
         addToWaitlist,
-        waitlistPosition
+        waitlistPosition,
+        uploadedWaiverPath
       ]
     );
 
-    if (custom_answers) {
-        await saveCustomAnswers(client, newReg.id, custom_answers);
+    if (Object.keys(customAnswers).length > 0) {
+        await saveCustomAnswers(client, newReg.id, customAnswers);
     }
 
     await client.query('COMMIT');
@@ -170,7 +223,12 @@ router.post('/:id/register', authRequired, async (req, res) => {
     }
 
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (transactionStarted) {
+      await client.query('ROLLBACK');
+    }
+
+    cleanupUploadedWaiver();
+
     if (err.code === '23505') return res.status(409).json({ error: 'You are already registered.' });
     console.error(err);
     res.status(500).json({ error: 'Registration failed' });
@@ -185,6 +243,7 @@ router.get('/my/registrations', authRequired, async (req, res) => {
   `SELECT r.id, r.trip_id,
           r.moved_to_waitlist, r.registered_at, r.waitlist_position,
           r.promotion_expires_at, r.filled_waiver_pdf_path, u.strike_count,
+          r.is_manual_registration,
           r.checked_in, r.trip_checkin_token, r.promoted_from_waitlist_at,
           t.name, t.destination, t.trip_date, t.departure_time, t.image_url, t.waiver_pdf_path, t.requires_checkin
    FROM registrations r

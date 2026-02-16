@@ -31,12 +31,14 @@ const Trip = () => {
     terms: false,
     custom_answers: {}
   });
+  const [waiverFile, setWaiverFile] = useState(null);
   const [customQuestions, setCustomQuestions] = useState([]);
   const [message, setMessage] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [checkInModal, setCheckInModal] = useState(null);
   const [processingCheckIn, setProcessingCheckIn] = useState(false);
   const [modalClosing, setModalClosing] = useState(false);
+  const waiverRequiredForRegistration = Boolean(trip?.waiver_pdf_path);
 
   useEffect(() => {
     fetchTrip();
@@ -280,6 +282,8 @@ const Trip = () => {
           return;
       }
 
+      setWaiverFile(null);
+
       // Logic to decide which modal to show
       // If trip requires questions or has custom questions -> Full Modal
       // Else -> Quick Modal
@@ -290,18 +294,146 @@ const Trip = () => {
       }
   };
 
+  const closeRegisterModal = () => {
+    setShowRegister(false);
+    setWaiverFile(null);
+  };
+
+  const closeQuickRegisterModal = () => {
+    setShowQuickRegister(false);
+    setWaiverFile(null);
+  };
+
+  const handleWaiverFileChange = (file) => {
+    if (!file) {
+      setWaiverFile(null);
+      return;
+    }
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      setWaiverFile(null);
+      setAlertModal({
+        show: true,
+        title: 'Invalid File Type',
+        message: 'Please upload a PDF waiver file.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (file.size > 200 * 1024 * 1024) {
+      setWaiverFile(null);
+      setAlertModal({
+        show: true,
+        title: 'File Too Large',
+        message: 'File size exceeds 200MB limit. Please compress the PDF and try again.',
+        type: 'error'
+      });
+      return;
+    }
+
+    setWaiverFile(file);
+  };
+
+  const handlePostRegistrationWaiverUpload = async (file) => {
+    if (!registrationStatus?.id || !file) return;
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      setAlertModal({
+        show: true,
+        title: 'Invalid File Type',
+        message: 'Please upload a PDF waiver file.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (file.size > 200 * 1024 * 1024) {
+      setAlertModal({
+        show: true,
+        title: 'File Too Large',
+        message: 'File size exceeds 200MB limit. Please compress the PDF and try again.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append('waiver', file);
+
+    try {
+      const res = await fetch(apiUrl(`/api/registrations/${registrationStatus.id}/waiver`), {
+        method: 'POST',
+        credentials: 'include',
+        body: fd
+      });
+
+      if (res.ok) {
+        await checkRegistration();
+        setAlertModal({
+          show: true,
+          title: 'Success!',
+          message: 'Waiver uploaded successfully!',
+          type: 'success'
+        });
+      } else {
+        const err = await res.json();
+        setAlertModal({
+          show: true,
+          title: 'Upload Failed',
+          message: err.error || 'Failed to upload waiver. Please try again.',
+          type: 'error'
+        });
+      }
+    } catch {
+      setAlertModal({
+        show: true,
+        title: 'Network Error',
+        message: 'Unable to upload waiver. Check your connection and try again.',
+        type: 'error'
+      });
+    }
+  };
+
+  const buildRegistrationFormData = (includeDetails = false) => {
+    const payload = new FormData();
+
+    if (includeDetails) {
+      payload.append('equipment_rental', formData.equipment_rental || 'none');
+      payload.append('helmet_rental', String(formData.helmet_rental));
+      payload.append('skill_level', formData.skill_level || '');
+      payload.append('emergency_contact_name', formData.emergency_contact_name || '');
+      payload.append('emergency_contact_phone', formData.emergency_contact_phone || '');
+      payload.append('special_requests', formData.notes || '');
+      payload.append('terms_agreed', String(formData.terms));
+      payload.append('custom_answers', JSON.stringify(formData.custom_answers || {}));
+    }
+
+    if (waiverFile) {
+      payload.append('waiver', waiverFile);
+    }
+
+    return payload;
+  };
+
   const handleQuickRegister = async () => {
+      if (waiverRequiredForRegistration && !waiverFile) {
+          setMessage({ type: 'error', text: 'Please download and upload your signed waiver before registering.' });
+          return;
+      }
+
       try {
         const res = await fetch(apiUrl(`/api/trips/${id}/register`), {
             method: 'POST',
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}) 
+            body: buildRegistrationFormData(false)
         });
         const data = await res.json();
         if (res.ok) {
             setMessage({ type: 'success', text: data.status === 'waitlist' ? data.message : "You're in!" });
-            setShowQuickRegister(false);
+            closeQuickRegisterModal();
             fetchTrip();
             checkRegistration();
         } else {
@@ -314,28 +446,22 @@ const Trip = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (waiverRequiredForRegistration && !waiverFile) {
+      setMessage({ type: 'error', text: 'Please download and upload your signed waiver before registering.' });
+      return;
+    }
+
     try {
-      const payload = {
-        equipment_rental: formData.equipment_rental,
-        helmet_rental: formData.helmet_rental,
-        skill_level: formData.skill_level,
-        emergency_contact_name: formData.emergency_contact_name,
-        emergency_contact_phone: formData.emergency_contact_phone,
-        special_requests: formData.notes,
-        terms_agreed: formData.terms,
-        custom_answers: formData.custom_answers
-      };
-      
       const res = await fetch(apiUrl(`/api/trips/${id}/register`), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(payload)
+        body: buildRegistrationFormData(true)
       });
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.status === 'waitlist' ? data.message : "You have been successfully registered!" });
-        setShowRegister(false);
+        closeRegisterModal();
         fetchTrip();
         checkRegistration();
       } else {
@@ -525,8 +651,7 @@ const Trip = () => {
                         </div>
                     ) : null}
 
-                    {/* WAIVER SECTION */}
-                    {registrationStatus.waiver_pdf_path && !registrationStatus.moved_to_waitlist && (
+                    {registrationStatus.waiver_pdf_path && (
                         <div className="sidebar-notice" style={{
                             backgroundColor: 'var(--light)', 
                             border: '1px solid #ddd', 
@@ -539,11 +664,13 @@ const Trip = () => {
                         }}>
                             <h4 style={{fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', color: 'var(--primary)', fontWeight: '700'}}>
                                 <i className="fas fa-file-contract" style={{marginRight: '10px', fontSize: '20px'}}></i> 
-                                Required Waiver
+                                Waiver Status
                             </h4>
                             
                             <p style={{fontSize: '13px', color: '#666', margin: 0}}>
-                                Please download, sign, and upload the waiver to complete your registration.
+                                {registrationStatus.filled_waiver_pdf_path
+                                  ? 'Signed waiver is on file for this registration.'
+                                  : 'A signed waiver is not currently on file for this registration.'}
                             </p>
 
                             <a href={`/public_uploads/${registrationStatus.waiver_pdf_path}`} target="_blank" rel="noreferrer" className="btn btn-sm" style={{
@@ -555,68 +682,55 @@ const Trip = () => {
                                 alignItems: 'center',
                                 justifyContent: 'center'
                             }}>
-                                <i className="fas fa-download" style={{marginRight: '8px'}}></i> 1. Download Waiver
+                                <i className="fas fa-download" style={{marginRight: '8px'}}></i> Download Waiver
                             </a>
 
-                            <div style={{position: 'relative', overflow: 'hidden'}}>
-                                <button className="btn" style={{width: '100%', pointerEvents: 'none'}}>
-                                    <i className="fas fa-upload" style={{marginRight: '8px'}}></i> 2. Upload Signed PDF
-                                </button>
-                                <input 
-                                    type="file" 
-                                    accept=".pdf" 
-                                    onChange={async (e) => {
-                                        if(e.target.files?.[0]) {
-                                            if(e.target.files[0].size > 200 * 1024 * 1024) {
-                                                setAlertModal({ show: true, title: 'File Too Large', message: 'File size exceeds 200MB limit. Please compress the PDF and try again.', type: 'error' });
-                                                return;
-                                            }
-                                            const fd = new FormData();
-                                            fd.append('waiver', e.target.files[0]);
-                                            try {
-                                                const res = await fetch(apiUrl(`/api/registrations/${registrationStatus.id}/waiver`), {
-                                                    method: 'POST',
-                                                    credentials: 'include',
-                                                    body: fd
-                                                });
-                                                if(res.ok) {
-                                                    checkRegistration();
-                                                    setAlertModal({ show: true, title: 'Success!', message: 'Waiver uploaded successfully!', type: 'success' });
-                                                } else {
-                                                    setAlertModal({ show: true, title: 'Upload Failed', message: 'Failed to upload waiver. Please try again.', type: 'error' });
-                                                }
-                                            } catch(err) {
-                                                setAlertModal({ show: true, title: 'Network Error', message: 'Unable to upload waiver. Check your connection and try again.', type: 'error' });
-                                            }
-                                        }
-                                    }}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        opacity: 0,
-                                        cursor: 'pointer'
-                                    }}
-                                />
-                            </div>
-                            
                             {registrationStatus.filled_waiver_pdf_path && (
-                                <div style={{
-                                    marginTop: '5px', 
-                                    color: 'var(--success)', 
-                                    fontWeight: '700', 
-                                    fontSize: '13px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '8px',
-                                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                    borderRadius: '4px'
-                                }}>
-                                    <i className="fas fa-check-circle" style={{marginRight: '8px'}}></i> Waiver Uploaded Successfully
-                                </div>
+                              <a href={`/public_uploads/${registrationStatus.filled_waiver_pdf_path}`} target="_blank" rel="noreferrer" className="btn btn-sm" style={{
+                                  width: '100%',
+                                  backgroundColor: '#eefaf2',
+                                  border: '1px solid #b6e5c8',
+                                  color: '#0f5132',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                              }}>
+                                  <i className="fas fa-check-circle" style={{marginRight: '8px'}}></i> View Uploaded Waiver
+                              </a>
+                            )}
+
+                            {!registrationStatus.filled_waiver_pdf_path && registrationStatus.is_manual_registration && (
+                              <div style={{position: 'relative', overflow: 'hidden'}}>
+                                <button className="btn" style={{width: '100%', pointerEvents: 'none'}}>
+                                  <i className="fas fa-upload" style={{marginRight: '8px'}}></i> Upload Signed Waiver
+                                </button>
+                                <input
+                                  type="file"
+                                  accept=".pdf,application/pdf"
+                                  onChange={(e) => handlePostRegistrationWaiverUpload(e.target.files?.[0])}
+                                  style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    opacity: 0,
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {!registrationStatus.filled_waiver_pdf_path && !registrationStatus.is_manual_registration && (
+                              <div style={{
+                                  marginTop: '5px',
+                                  color: 'var(--danger)',
+                                  fontWeight: '600',
+                                  fontSize: '12px',
+                                  textAlign: 'center'
+                              }}>
+                                  Contact an admin to resolve missing waiver records.
+                              </div>
                             )}
                         </div>
                     )}
@@ -758,9 +872,9 @@ const Trip = () => {
 
       {/* Full Register Modal */}
       {showRegister && (
-          <div className="modal-overlay active" onClick={(e) => e.target === e.currentTarget && setShowRegister(false)}>
+          <div className="modal-overlay active" onClick={(e) => e.target === e.currentTarget && closeRegisterModal()}>
               <div className="modal">
-                  <button className="modal-close" onClick={() => setShowRegister(false)}>&times;</button>
+                  <button className="modal-close" onClick={closeRegisterModal}>&times;</button>
                   <h2 className="modal-title">{isFull ? 'Join Waitlist' : 'Register for Trip'}</h2>
                   <form onSubmit={handleRegister} className="registration-form">
                       <div className="form-group">
@@ -821,6 +935,45 @@ const Trip = () => {
                           </div>
                       ))}
 
+                      {trip.waiver_pdf_path && (
+                        <div className="form-group">
+                          <label htmlFor="register_waiver_upload">Required Waiver (PDF) *</label>
+                          <p style={{fontSize: '13px', color: '#666', margin: '6px 0 10px'}}>
+                            Download, sign, and upload this waiver to complete registration.
+                          </p>
+                          <a
+                            href={`/public_uploads/${trip.waiver_pdf_path}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-sm"
+                            style={{
+                              marginBottom: '10px',
+                              width: '100%',
+                              backgroundColor: '#f8f9fa',
+                              border: '1px solid #ccc',
+                              color: '#333',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <i className="fas fa-download" style={{marginRight: '8px'}}></i> Download Waiver
+                          </a>
+                          <input
+                            id="register_waiver_upload"
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            required
+                            onChange={(e) => handleWaiverFileChange(e.target.files?.[0])}
+                          />
+                          {waiverFile && (
+                            <p style={{fontSize: '12px', color: 'var(--success)', marginTop: '8px', marginBottom: 0}}>
+                              Selected: {waiverFile.name}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <div className="checkbox-group">
                           <input type="checkbox" id="terms" required checked={formData.terms} onChange={e => setFormData({...formData, terms: e.target.checked})} />
                           <label htmlFor="terms">I agree to the trip policies and understand the cancellation and check-in requirements. *</label>
@@ -834,9 +987,9 @@ const Trip = () => {
 
       {/* Quick Register Modal */}
       {showQuickRegister && (
-        <div className="modal-overlay active" onClick={(e) => e.target === e.currentTarget && setShowQuickRegister(false)}>
+        <div className="modal-overlay active" onClick={(e) => e.target === e.currentTarget && closeQuickRegisterModal()}>
             <div className="modal" style={{maxWidth: '450px', textAlign: 'center'}}>
-                <button className="modal-close" onClick={() => setShowQuickRegister(false)}>&times;</button>
+                <button className="modal-close" onClick={closeQuickRegisterModal}>&times;</button>
                 <h2 className="modal-title">{isFull ? 'Join Waitlist' : 'Confirm Registration'}</h2>
                 
                 <p style={{marginBottom: '30px', fontSize: '16px'}}>
@@ -844,9 +997,57 @@ const Trip = () => {
                     <span style={{color: 'var(--primary)', fontWeight: '700', fontSize: '18px'}}>{trip.name}</span>?
                 </p>
 
+                {trip.waiver_pdf_path && (
+                  <div style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    marginBottom: '20px',
+                    textAlign: 'left',
+                    backgroundColor: '#f8f9fa'
+                  }}>
+                    <p style={{fontSize: '13px', color: '#555', marginTop: 0, marginBottom: '10px'}}>
+                      This trip requires a signed waiver before registration can be submitted.
+                    </p>
+                    <a
+                      href={`/public_uploads/${trip.waiver_pdf_path}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-sm"
+                      style={{
+                        marginBottom: '10px',
+                        width: '100%',
+                        backgroundColor: '#fff',
+                        border: '1px solid #ccc',
+                        color: '#333',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <i className="fas fa-download" style={{marginRight: '8px'}}></i> 1. Download Waiver
+                    </a>
+                    <label htmlFor="quick_waiver_upload" style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px'}}>
+                      2. Upload Signed Waiver (PDF) *
+                    </label>
+                    <input
+                      id="quick_waiver_upload"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={(e) => handleWaiverFileChange(e.target.files?.[0])}
+                      required
+                    />
+                    {waiverFile && (
+                      <p style={{fontSize: '12px', color: 'var(--success)', marginTop: '8px', marginBottom: 0}}>
+                        Selected: {waiverFile.name}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div style={{display: 'flex', justifyContent: 'center', gap: '15px'}}>
-                    <button className="btn" style={{width: '120px', backgroundColor: 'white', border: '1px solid #ccc', color: '#333'}} onClick={() => setShowQuickRegister(false)}>Cancel</button>
-                    <button className="btn" style={{width: '150px'}} onClick={handleQuickRegister}>Yes, {isFull ? 'Join Waitlist' : 'Register'}</button>
+                    <button className="btn" style={{width: '120px', backgroundColor: 'white', border: '1px solid #ccc', color: '#333'}} onClick={closeQuickRegisterModal}>Cancel</button>
+                    <button className="btn" style={{width: '150px', opacity: waiverRequiredForRegistration && !waiverFile ? 0.6 : 1}} onClick={handleQuickRegister} disabled={waiverRequiredForRegistration && !waiverFile}>Yes, {isFull ? 'Join Waitlist' : 'Register'}</button>
                 </div>
             </div>
         </div>

@@ -6,6 +6,13 @@ async function runMigrations() {
   try {
     await pool.query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS waiver_pdf_path TEXT');
     await pool.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS filled_waiver_pdf_path TEXT');
+    await pool.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS is_manual_registration BOOLEAN DEFAULT FALSE');
+    await pool.query(`
+      UPDATE registrations
+      SET is_manual_registration = TRUE
+      WHERE is_manual_registration IS DISTINCT FROM TRUE
+        AND special_requests = 'Manually added by admin'
+    `);
     await pool.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS won_rental BOOLEAN DEFAULT FALSE');
     await pool.query('ALTER TABLE registrations ADD COLUMN IF NOT EXISTS won_ticket BOOLEAN DEFAULT FALSE');
     await pool.query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS checkin_emails_sent BOOLEAN DEFAULT FALSE');
