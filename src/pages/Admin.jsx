@@ -204,6 +204,7 @@ export default function Admin() {
     const [regDetails, setRegDetails] = useState({}); // Cache details by ID
     const [draggedItem, setDraggedItem] = useState(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
+    const [registrationSearch, setRegistrationSearch] = useState('');
 
     // Manual Add Person
     const [showAddPerson, setShowAddPerson] = useState(false);
@@ -610,6 +611,7 @@ export default function Admin() {
 // registrations
     const viewRegistrations = async (tripId) => {
         setSelectedRegistrationTripId(tripId);
+        setRegistrationSearch('');
         setModals(m => ({ ...m, registrations: true }));
         const regRes = await fetchWithAuth(`/api/admin/trips/${tripId}/registrations`);
         const tripRes = await fetchWithAuth(`/api/trips/${tripId}`);
@@ -2560,6 +2562,29 @@ export default function Admin() {
                         </div>
                     )}
 
+                    {/* Search Bar */}
+                    <div style={{padding:'10px 24px', borderBottom:'1px solid var(--medium-gray)', flexShrink:0}}>
+                        <div style={{position:'relative'}}>
+                            <i className="fas fa-search" style={{position:'absolute', left:'10px', top:'50%', transform:'translateY(-50%)', color:'var(--text-muted)', fontSize:'13px'}}></i>
+                            <input
+                                type="text"
+                                placeholder="Search by name or email..."
+                                value={registrationSearch}
+                                onChange={(e) => setRegistrationSearch(e.target.value)}
+                                style={{width:'100%', padding:'7px 10px 7px 32px', border:'1px solid var(--medium-gray)', borderRadius:'6px', fontSize:'13px', background:'var(--umd-white)', color:'var(--text-primary)', outline:'none'}}
+                            />
+                            {registrationSearch && (
+                                <button
+                                    onClick={() => setRegistrationSearch('')}
+                                    style={{position:'absolute', right:'8px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:'14px', padding:'0 4px', lineHeight:1}}
+                                    title="Clear search"
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Scrollable Rosters Container */}
                     <div className="rosters-container" style={{flex:1, overflowY:'auto', padding:'16px 24px'}}>
                         {/* Active Roster */}
@@ -2568,7 +2593,11 @@ export default function Admin() {
                             <table className="data-table">
                             <thead><tr><th style={{width:'30px'}}></th><th>Name</th><th>Email</th><th>Spot Secured</th><th>Status</th><th>Rental</th><th>Prizes</th><th>Waiver</th><th>Actions</th></tr></thead>
                             <tbody>
-                                {registrationData.active.map(r => (
+                                {registrationData.active.filter(r => {
+                                    if (!registrationSearch.trim()) return true;
+                                    const q = registrationSearch.toLowerCase();
+                                    return `${r.first_name} ${r.last_name}`.toLowerCase().includes(q) || (r.email && r.email.toLowerCase().includes(q));
+                                }).map(r => (
                                     <React.Fragment key={r.registration_id}>
                                         <tr className={`reg-table-row ${expandedRegId===r.registration_id ? 'expanded' : ''}`} onClick={() => toggleRegDetails(r.registration_id)}>
                                             <td style={{textAlign:'center'}}><i className="fas fa-chevron-down row-toggle-icon"></i></td>
@@ -2742,7 +2771,11 @@ export default function Admin() {
                             <table className="data-table">
                                 <thead><tr><th style={{width:'40px'}}></th><th>#</th><th>Name</th><th>Email</th><th>Registered At</th><th>Actions</th></tr></thead>
                                 <tbody style={{backgroundColor:'var(--subtle-bg)'}}>
-                                    {registrationData.waitlist.map((r, i) => (
+                                    {registrationData.waitlist.filter(r => {
+                                        if (!registrationSearch.trim()) return true;
+                                        const q = registrationSearch.toLowerCase();
+                                        return `${r.first_name} ${r.last_name}`.toLowerCase().includes(q) || (r.email && r.email.toLowerCase().includes(q));
+                                    }).map((r, i) => (
                                         <tr
                                             key={r.registration_id}
                                             draggable
