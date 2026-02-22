@@ -28,7 +28,7 @@ Set up a `.env` file with your DB credentials, JWT secret, SMTP config, and SSL 
 Register an account, then manually set your role in the database:
 
 ```sql
-UPDATE users SET role = 'admin' WHERE email = 'you@umd.edu';
+UPDATE users SET role = 'admin' WHERE email = 'you@terpmail.umd.edu';
 ```
 
 Then log in and go to `/admin`.
