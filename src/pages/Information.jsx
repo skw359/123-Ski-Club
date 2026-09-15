@@ -35,8 +35,10 @@ export default function Information() {
   
   // Helpers
   
-  function isValidTerpmail(val) {
-    return typeof val === "string" && val.toLowerCase().endsWith("@terpmail.umd.edu");
+  function isValidUmdEmail(val) {
+    if (typeof val !== "string") return false;
+    const lower = val.toLowerCase();
+    return lower.endsWith("@terpmail.umd.edu") || lower.endsWith("@umd.edu");
   }
 
   function showHeaderMessage(text, type = "error") {
@@ -135,7 +137,7 @@ export default function Information() {
       const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        showHeaderMessage("Login link sent! Please check your @terpmail.umd.edu inbox.", "success");
+        showHeaderMessage("Login link sent! Please check your UMD email inbox.", "success");
         closeModal();
       } else if (response.status === 404) {
         showModalMessage("No account found. Please contact an admin to be added.", "error");
@@ -597,9 +599,9 @@ export default function Information() {
               const trimmed = email.trim();
 
               if (!trimmed) return showModalMessage("Please enter your email address.", "error");
-              if (!isValidTerpmail(trimmed))
+              if (!isValidUmdEmail(trimmed))
                 return showModalMessage(
-                  "Please use your @terpmail.umd.edu email address.",
+                  "Please use your @terpmail.umd.edu or @umd.edu email address.",
                   "error"
                 );
 
@@ -607,7 +609,7 @@ export default function Information() {
             }}
           >
             <div className="form-group">
-              <label htmlFor="emailInput">Email (Terpmail)</label>
+              <label htmlFor="emailInput">Email (Terpmail or UMD.edu)</label>
               <input
                 ref={emailInputRef}
                 type="email"

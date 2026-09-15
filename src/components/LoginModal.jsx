@@ -38,13 +38,14 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   const isValidEmail = (e) => {
     if (allowExternalEmails) return e.includes('@') && e.includes('.');
-    return e.toLowerCase().endsWith('@terpmail.umd.edu');
+    const lower = e.toLowerCase();
+    return lower.endsWith('@terpmail.umd.edu') || lower.endsWith('@umd.edu');
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!isValidEmail(email)) {
-      setMessage({ type: 'error', text: allowExternalEmails ? 'Invalid email.' : 'Please use @terpmail.umd.edu' });
+      setMessage({ type: 'error', text: allowExternalEmails ? 'Invalid email.' : 'Please use your @terpmail.umd.edu or @umd.edu email' });
       return;
     }
     
@@ -114,7 +115,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         {!isRegistering ? (
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
-              <label htmlFor="emailInput">Terpmail</label>
+              <label htmlFor="emailInput">Email (Terpmail or UMD.edu)</label>
               <input
                 type="email"
                 id="emailInput"
@@ -155,7 +156,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="regEmail">Email (Terpmail)</label>
+              <label htmlFor="regEmail">Email (Terpmail or UMD.edu)</label>
               <input
                 type="email"
                 id="regEmail"

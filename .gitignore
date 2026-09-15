@@ -1,0 +1,11 @@
+.env
+.env.*
+*.pem
+*.key
+*.crt
+node_modules/
+dist/
+public_dist/
+public_uploads/
+.DS_Store
+*.local.*
