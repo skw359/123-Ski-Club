@@ -115,7 +115,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         {!isRegistering ? (
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
-              <label htmlFor="emailInput">UMD Email</label>
+              <label htmlFor="emailInput">Email (Terpmail or UMD.edu)</label>
               <input
                 type="email"
                 id="emailInput"
@@ -156,7 +156,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="regEmail">Email (UMD)</label>
+              <label htmlFor="regEmail">Email (Terpmail or UMD.edu)</label>
               <input
                 type="email"
                 id="regEmail"

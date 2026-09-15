@@ -609,7 +609,7 @@ export default function Information() {
             }}
           >
             <div className="form-group">
-              <label htmlFor="emailInput">Email (UMD)</label>
+              <label htmlFor="emailInput">Email (Terpmail or UMD.edu)</label>
               <input
                 ref={emailInputRef}
                 type="email"
