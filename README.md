@@ -1,6 +1,9 @@
 # 123 I Like To Ski 
 
-A web-based management system for 123 I Like To Ski @ University of Maryland, aimed to streamline ski trip registration, attendance tracking, waitlist management, and member engagement.
+A web-based management system for 123 I Like To Ski @ University of Maryland, aimed to streamline ski trip registration, attendance tracking, waitlist management, and member engagement. https://123iliktoski.com/
+
+<img width="1280" height="657" alt="weuiyhgfwef" src="https://github.com/user-attachments/assets/69ff3732-d51d-4533-9a94-935e59d61061" />
+
 
 ## What it does
 
